@@ -76,6 +76,7 @@ import {
   getRoomNotificationMode,
   useRoomsNotificationPreferencesContext,
 } from '../../../hooks/useRoomsNotificationPreferences';
+import { SpaceNotificationModeSwitcher } from '../../../components/SpaceNotificationSwitcher';
 import { useOpenSpaceSettings } from '../../../state/hooks/spaceSettings';
 import { useRoomNavigate } from '../../../hooks/useRoomNavigate';
 import { useRoomCreators } from '../../../hooks/useRoomCreators';
@@ -105,6 +106,7 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(({ room, requestClo
 
   const [invitePrompt, setInvitePrompt] = useState(false);
 
+  const notificationPreferences = useRoomsNotificationPreferencesContext();
   const allChild = useSpaceChildren(
     allRoomsAtom,
     room.roomId,
@@ -161,6 +163,27 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(({ room, requestClo
             Mark as Read
           </Text>
         </MenuItem>
+        <SpaceNotificationModeSwitcher roomIds={allChild} preferences={notificationPreferences}>
+          {(handleOpen, opened, changing) => (
+            <MenuItem
+              size="300"
+              after={
+                changing ? (
+                  <Spinner size="100" variant="Secondary" />
+                ) : (
+                  <Icon size="100" src={Icons.Bell} />
+                )
+              }
+              radii="300"
+              aria-pressed={opened}
+              onClick={handleOpen}
+            >
+              <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+                Notifications
+              </Text>
+            </MenuItem>
+          )}
+        </SpaceNotificationModeSwitcher>
       </Box>
       <Line variant="Surface" size="300" />
       <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>

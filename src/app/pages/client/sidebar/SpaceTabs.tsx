@@ -20,6 +20,7 @@ import {
   MenuItem,
   PopOut,
   RectCords,
+  Spinner,
   Text,
   config,
   toRem,
@@ -93,6 +94,8 @@ import { useOpenSpaceSettings } from '../../../state/hooks/spaceSettings';
 import { useRoomCreators } from '../../../hooks/useRoomCreators';
 import { useRoomPermissions } from '../../../hooks/useRoomPermissions';
 import { InviteUserPrompt } from '../../../components/invite-user-prompt';
+import { useRoomsNotificationPreferencesContext } from '../../../hooks/useRoomsNotificationPreferences';
+import { SpaceNotificationModeSwitcher } from '../../../components/SpaceNotificationSwitcher';
 
 type SpaceMenuProps = {
   room: Room;
@@ -118,6 +121,7 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(
       room.roomId,
       useRecursiveChildScopeFactory(mx, roomToParents)
     );
+    const notificationPreferences = useRoomsNotificationPreferencesContext();
     const unread = useRoomsUnread(allChild, roomToUnreadAtom);
 
     const handleMarkAsRead = () => {
@@ -169,6 +173,27 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(
               Mark as Read
             </Text>
           </MenuItem>
+          <SpaceNotificationModeSwitcher roomIds={allChild} preferences={notificationPreferences}>
+            {(handleOpen, opened, changing) => (
+              <MenuItem
+                size="300"
+                after={
+                  changing ? (
+                    <Spinner size="100" variant="Secondary" />
+                  ) : (
+                    <Icon size="100" src={Icons.Bell} />
+                  )
+                }
+                radii="300"
+                aria-pressed={opened}
+                onClick={handleOpen}
+              >
+                <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+                  Notifications
+                </Text>
+              </MenuItem>
+            )}
+          </SpaceNotificationModeSwitcher>
           {onUnpin && (
             <MenuItem
               size="300"
