@@ -53,6 +53,7 @@ import {
   getBeginCommand,
   trimCommand,
   getMentions,
+  replaceShortcodeWithEmoji,
 } from '../../components/editor';
 import { EmojiBoard, EmojiBoardTab } from '../../components/emoji-board';
 import { UseStateProvider } from '../../components/UseStateProvider';
@@ -108,6 +109,7 @@ import { ReplyLayout, ThreadIndicator } from '../../components/message';
 import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useImagePackRooms } from '../../hooks/useImagePackRooms';
+import { useEmojiShortcodeMap } from '../../hooks/useEmojiShortcodeMap';
 import { usePowerLevelsContext } from '../../hooks/usePowerLevels';
 import colorMXID from '../../../util/colorMXID';
 import { useIsDirectRoom } from '../../hooks/useRoom';
@@ -169,12 +171,23 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
     const uploadBoardHandlers = useRef<UploadBoardImperativeHandlers>();
 
     const imagePackRooms: Room[] = useImagePackRooms(roomId, roomToParents);
+    const emojiShortcodeMap = useEmojiShortcodeMap(imagePackRooms);
 
     const [toolbar, setToolbar] = useSetting(settingsAtom, 'editorToolbar');
     const [autocompleteQuery, setAutocompleteQuery] =
       useState<AutocompleteQuery<AutocompletePrefix>>();
 
     const sendTypingStatus = useTypingStatusUpdater(mx, roomId);
+
+    const handleEditorChange = useCallback(() => {
+      // Only attempt replacement when the user types a ':' character
+      const hasColonInsert = editor.operations.some(
+        (op) => op.type === 'insert_text' && op.text.includes(':')
+      );
+      if (hasColonInsert) {
+        replaceShortcodeWithEmoji(editor, emojiShortcodeMap);
+      }
+    }, [editor, emojiShortcodeMap]);
 
     const handleFiles = useCallback(
       async (files: File[]) => {
@@ -542,6 +555,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           placeholder="Send a message..."
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
+          onChange={handleEditorChange}
           onPaste={handlePaste}
           top={
             replyDraft && (
