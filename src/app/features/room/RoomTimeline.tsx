@@ -99,7 +99,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { getResizeObserverEntry, useResizeObserver } from '../../hooks/useResizeObserver';
 import * as css from './RoomTimeline.css';
 import { inSameDay, minuteDifference, timeDayMonthYear, today, yesterday } from '../../utils/time';
-import { createMentionElement, isEmptyEditor, moveCursor } from '../../components/editor';
+import { isEmptyEditor } from '../../components/editor';
 import { roomIdToReplyDraftAtomFamily } from '../../state/room/roomInputDrafts';
 import { usePowerLevelsContext } from '../../hooks/usePowerLevels';
 import { GetContentCallback, MessageEvent, StateEvent } from '../../../types/matrix/room';
@@ -929,27 +929,6 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     },
     [room, space, openUserRoomProfile]
   );
-  const handleUsernameClick: MouseEventHandler<HTMLButtonElement> = useCallback(
-    (evt) => {
-      evt.preventDefault();
-      const userId = evt.currentTarget.getAttribute('data-user-id');
-      if (!userId) {
-        console.warn('Button should have "data-user-id" attribute!');
-        return;
-      }
-      const name = getMemberDisplayName(room, userId) ?? getMxIdLocalPart(userId) ?? userId;
-      editor.insertNode(
-        createMentionElement(
-          userId,
-          name.startsWith('@') ? name : `@${name}`,
-          userId === mx.getUserId()
-        )
-      );
-      ReactEditor.focus(editor);
-      moveCursor(editor);
-    },
-    [mx, room, editor]
-  );
 
   const handleReplyClick: MouseEventHandler<HTMLButtonElement> = useCallback(
     (evt, startThread = false) => {
@@ -1054,7 +1033,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             imagePackRooms={imagePackRooms}
             relations={hasReactions ? reactionRelations : undefined}
             onUserClick={handleUserClick}
-            onUsernameClick={handleUsernameClick}
+            onUsernameClick={handleUserClick}
             onReplyClick={handleReplyClick}
             onReactionToggle={handleReactionToggle}
             onEditId={handleEdit}
@@ -1136,7 +1115,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             imagePackRooms={imagePackRooms}
             relations={hasReactions ? reactionRelations : undefined}
             onUserClick={handleUserClick}
-            onUsernameClick={handleUsernameClick}
+            onUsernameClick={handleUserClick}
             onReplyClick={handleReplyClick}
             onReactionToggle={handleReactionToggle}
             onEditId={handleEdit}
@@ -1254,7 +1233,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             imagePackRooms={imagePackRooms}
             relations={hasReactions ? reactionRelations : undefined}
             onUserClick={handleUserClick}
-            onUsernameClick={handleUsernameClick}
+            onUsernameClick={handleUserClick}
             onReplyClick={handleReplyClick}
             onReactionToggle={handleReactionToggle}
             reactions={
