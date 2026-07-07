@@ -21,10 +21,7 @@ export function SidebarNav() {
             <SidebarStack>
               <HomeTab />
             </SidebarStack>
-            <SidebarStackSeparator />
-            <SidebarStack>
-              <DirectTab />
-            </SidebarStack>
+            <DirectTab />
             <SpaceTabs scrollRef={scrollRef} />
             <SidebarStackSeparator />
             <SidebarStack>

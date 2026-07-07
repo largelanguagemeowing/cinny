@@ -12,6 +12,8 @@ import {
   SidebarItem,
   SidebarItemBadge,
   SidebarItemTooltip,
+  SidebarStack,
+  SidebarStackSeparator,
 } from '../../../components/sidebar';
 import { RoomUnreadProvider } from '../../../components/RoomUnreadProvider';
 import { RoomAvatar } from '../../../components/room-avatar';
@@ -150,7 +152,7 @@ export function DirectTab() {
   const sortedDirects = useMemo(
     () =>
       Array.from(directs)
-        .filter((rId) => roomToUnread.has(rId) || rId === selectedRoomId)
+        .filter((rId) => roomToUnread.has(rId) && rId !== selectedRoomId)
         .sort(factoryRoomIdByActivity(mx)),
     [mx, directs, roomToUnread, selectedRoomId]
   );
@@ -167,18 +169,21 @@ export function DirectTab() {
 
   return (
     <>
-      {sortedDirects.map((roomId) => {
-        const room = mx.getRoom(roomId);
-        if (!room) return null;
-        return (
-          <DirectRoomTab
-            key={roomId}
-            room={room}
-            selected={selectedRoomId === roomId}
-            onClick={handleClick}
-          />
-        );
-      })}
+      <SidebarStackSeparator />
+      <SidebarStack>
+        {sortedDirects.map((roomId) => {
+          const room = mx.getRoom(roomId);
+          if (!room) return null;
+          return (
+            <DirectRoomTab
+              key={roomId}
+              room={room}
+              selected={selectedRoomId === roomId}
+              onClick={handleClick}
+            />
+          );
+        })}
+      </SidebarStack>
     </>
   );
 }
