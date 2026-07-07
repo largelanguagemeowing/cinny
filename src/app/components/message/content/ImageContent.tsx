@@ -23,6 +23,7 @@ import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
 import { IImageInfo, MATRIX_BLUR_HASH_PROPERTY_NAME } from '../../../../types/matrix/common';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
 import * as css from './style.css';
 import { bytesToSize } from '../../../utils/common';
 import { FALLBACK_MIMETYPE } from '../../../utils/mimeTypes';
@@ -67,7 +68,7 @@ export const ImageContent = as<'div', ImageContentProps>(
       url,
       info,
       encInfo,
-      autoPlay,
+      autoPlay: autoPlayProp,
       markedAsSpoiler,
       spoilerReason,
       renderViewer,
@@ -79,6 +80,7 @@ export const ImageContent = as<'div', ImageContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
+    const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -117,7 +119,7 @@ export const ImageContent = as<'div', ImageContentProps>(
     }, [autoPlay, loadSrc]);
 
     return (
-      <Box className={classNames(css.RelativeBase, className)} {...props} ref={ref}>
+      <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
         {srcState.status === AsyncStatus.Success && (
           <Overlay open={viewer} backdrop={<OverlayBackdrop />}>
             <OverlayCenter>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
 import { Attachment, AttachmentBox, AttachmentHeader } from '../attachment';
 import { FileHeader } from '../FileHeader';
 import { Video } from '../../media';
+import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
 import * as css from './style.css';
 import { scaleYDimension } from '../../../utils/common';
 
@@ -28,11 +29,16 @@ const DEFAULT_HEIGHT = 300;
 const MAX_HEIGHT = 600;
 const SCALED_WIDTH = 400;
 
-export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay }: OoyeGifContentProps) {
+export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayProp }: OoyeGifContentProps) {
+  const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
-  const [showVideo, setShowVideo] = useState(autoPlay ?? false);
+  const [showVideo, setShowVideo] = useState(autoPlay);
+
+  useEffect(() => {
+    if (autoPlay) setShowVideo(true);
+  }, [autoPlay]);
 
   const linkUrl = pageUrl ?? videoUrl;
 
@@ -79,7 +85,7 @@ export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay }: OoyeGifCo
         />
       </AttachmentHeader>
       <AttachmentBox style={{ height: toRem(height) }}>
-        <Box className={css.RelativeBase}>
+        <Box className={css.RelativeBase} {...hoverProps}>
           {showVideo && !error && (
             <Box className={css.AbsoluteContainer}>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

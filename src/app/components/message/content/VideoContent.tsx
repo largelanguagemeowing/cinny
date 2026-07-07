@@ -22,6 +22,7 @@ import {
 } from '../../../../types/matrix/common';
 import * as css from './style.css';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { bytesToSize, millisecondsToMinutesAndSeconds } from '../../../utils/common';
 import {
@@ -62,7 +63,7 @@ export const VideoContent = as<'div', VideoContentProps>(
       url,
       info,
       encInfo,
-      autoPlay,
+      autoPlay: autoPlayProp,
       markedAsSpoiler,
       spoilerReason,
       renderThumbnail,
@@ -74,6 +75,7 @@ export const VideoContent = as<'div', VideoContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info.thumbnail_info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
+    const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -110,7 +112,7 @@ export const VideoContent = as<'div', VideoContentProps>(
     }, [autoPlay, loadSrc]);
 
     return (
-      <Box className={classNames(css.RelativeBase, className)} {...props} ref={ref}>
+      <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
         {typeof blurHash === 'string' && !load && (
           <BlurhashCanvas
             style={{ width: '100%', height: '100%' }}

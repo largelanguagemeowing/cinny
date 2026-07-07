@@ -130,6 +130,16 @@ audio:not([controls]) {
   display: none !important;
 }
 
+/* Low animation mode: disable non-essential animations and transitions */
+body.low-animation-mode *,
+body.low-animation-mode *::before,
+body.low-animation-mode *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Fix Firefox rendering lists that have empty items with those items collapsed in on eachother */
 li p::before {
   content: '';

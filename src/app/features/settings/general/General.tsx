@@ -306,6 +306,7 @@ function PageZoomInput() {
 function Appearance() {
   const [systemTheme, setSystemTheme] = useSetting(settingsAtom, 'useSystemTheme');
   const [monochromeMode, setMonochromeMode] = useSetting(settingsAtom, 'monochromeMode');
+  const [lowAnimationMode, setLowAnimationMode] = useSetting(settingsAtom, 'lowAnimationMode');
   const [twitterEmoji, setTwitterEmoji] = useSetting(settingsAtom, 'twitterEmoji');
 
   return (
@@ -337,6 +338,16 @@ function Appearance() {
         <SettingTile
           title="Monochrome Mode"
           after={<Switch variant="Primary" value={monochromeMode} onChange={setMonochromeMode} />}
+        />
+      </SequenceCard>
+
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Low Animation Mode"
+          description="Disable non-essential animations. Media and GIFs only autoplay on hover."
+          after={
+            <Switch variant="Primary" value={lowAnimationMode} onChange={setLowAnimationMode} />
+          }
         />
       </SequenceCard>
 
