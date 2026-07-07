@@ -17,6 +17,7 @@ import {
   MNotice,
   MText,
   MVideo,
+  OoyeGifContent,
   ReadPdfFile,
   ReadTextFile,
   RenderBody,
@@ -30,6 +31,7 @@ import { ImageViewer } from './image-viewer';
 import { PdfViewer } from './Pdf-viewer';
 import { TextViewer } from './text-viewer';
 import { testMatrixTo } from '../plugins/matrix-to';
+import { parseOoyeGif } from '../utils/ooye';
 import { IImageContent } from '../../types/matrix/common';
 
 type RenderMessageContentProps = {
@@ -129,6 +131,17 @@ export function RenderMessageContent({
   );
 
   if (msgType === MsgType.Text) {
+    const ooyeGif = parseOoyeGif(getContent());
+    if (ooyeGif) {
+      return (
+        <OoyeGifContent
+          title={ooyeGif.title}
+          videoUrl={ooyeGif.videoUrl}
+          pageUrl={ooyeGif.pageUrl}
+          autoPlay={mediaAutoLoad}
+        />
+      );
+    }
     return (
       <MText
         edited={edited}
@@ -166,6 +179,17 @@ export function RenderMessageContent({
   }
 
   if (msgType === MsgType.Notice) {
+    const ooyeGif = parseOoyeGif(getContent());
+    if (ooyeGif) {
+      return (
+        <OoyeGifContent
+          title={ooyeGif.title}
+          videoUrl={ooyeGif.videoUrl}
+          pageUrl={ooyeGif.pageUrl}
+          autoPlay={mediaAutoLoad}
+        />
+      );
+    }
     return (
       <MNotice
         edited={edited}
