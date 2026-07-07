@@ -175,8 +175,9 @@ const getRoomMemberStr: SearchItemStrGetter<RoomMember> = (m, query) =>
 type MembersDrawerProps = {
   room: Room;
   members: RoomMember[];
+  hideHeader?: boolean;
 };
-export function MembersDrawer({ room, members }: MembersDrawerProps) {
+export function MembersDrawer({ room, members, hideHeader }: MembersDrawerProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -250,7 +251,7 @@ export function MembersDrawer({ room, members }: MembersDrawerProps) {
       shrink="No"
       direction="Column"
     >
-      <MemberDrawerHeader room={room} />
+      {!hideHeader && <MemberDrawerHeader room={room} />}
       <Box className={css.MemberDrawerContentBase} grow="Yes">
         <Scroll ref={scrollRef} variant="Background" size="300" visibility="Hover" hideTrack>
           <Box className={css.MemberDrawerContent} direction="Column" gap="200">

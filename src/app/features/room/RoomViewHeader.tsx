@@ -418,6 +418,13 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
   const [peopleDrawer, setPeopleDrawer] = useSetting(settingsAtom, 'isPeopleDrawer');
 
   const handleSearchClick = () => {
+    // On desktop the message search box lives in the member drawer, so opening
+    // the drawer reveals it. On mobile (no drawer) we navigate to the full
+    // search page instead.
+    if (screenSize === ScreenSize.Desktop) {
+      setPeopleDrawer(true);
+      return;
+    }
     const searchParams: _SearchPathSearchParams = {
       rooms: room.roomId,
     };
@@ -531,7 +538,12 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               }
             >
               {(triggerRef) => (
-                <IconButton fill="None" ref={triggerRef} onClick={handleSearchClick}>
+                <IconButton
+                  fill="None"
+                  ref={triggerRef}
+                  onClick={handleSearchClick}
+                  aria-label="Search messages"
+                >
                   <Icon size="400" src={Icons.Search} />
                 </IconButton>
               )}

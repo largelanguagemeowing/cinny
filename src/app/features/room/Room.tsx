@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { isKeyHotkey } from 'is-hotkey';
 import { useAtomValue } from 'jotai';
 import { RoomView } from './RoomView';
-import { MembersDrawer } from './MembersDrawer';
+import { RoomSearchDrawer } from './RoomSearchDrawer';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 import { useSetting } from '../../state/hooks/settings';
 import { settingsAtom } from '../../state/settings';
@@ -82,7 +82,7 @@ export function Room() {
         {!callView && screenSize === ScreenSize.Desktop && isDrawer && (
           <>
             <Line variant="Background" direction="Vertical" size="300" />
-            <MembersDrawer key={room.roomId} room={room} members={members} />
+            <RoomSearchDrawer key={room.roomId} room={room} members={members} />
           </>
         )}
       </Box>
