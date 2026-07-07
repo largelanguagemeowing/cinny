@@ -1,15 +1,21 @@
 import React, { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAtomValue } from 'jotai';
 import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
 import { IsDirectRoomProvider, RoomProvider } from '../../../hooks/useRoom';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { JoinBeforeNavigate } from '../../../features/join-before-navigate';
 import { useHomeRooms } from './useHomeRooms';
+import { useDirectRooms } from '../direct/useDirectRooms';
+import { mDirectAtom } from '../../../state/mDirectList';
 import { useSearchParamsViaServers } from '../../../hooks/router/useSearchParamsViaServers';
 
 export function HomeRouteRoomProvider({ children }: { children: ReactNode }) {
   const mx = useMatrixClient();
-  const rooms = useHomeRooms();
+  const orphanRooms = useHomeRooms();
+  const directs = useDirectRooms();
+  const mDirects = useAtomValue(mDirectAtom);
+  const rooms = orphanRooms.concat(directs);
 
   const { roomIdOrAlias, eventId } = useParams();
   const viaServers = useSearchParamsViaServers();
@@ -28,7 +34,7 @@ export function HomeRouteRoomProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoomProvider key={room.roomId} value={room}>
-      <IsDirectRoomProvider value={false}>{children}</IsDirectRoomProvider>
+      <IsDirectRoomProvider value={mDirects.has(room.roomId)}>{children}</IsDirectRoomProvider>
     </RoomProvider>
   );
 }

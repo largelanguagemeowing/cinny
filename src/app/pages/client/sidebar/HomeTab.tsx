@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, forwardRef, useState } from 'react';
+import React, { MouseEventHandler, forwardRef, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Icon, Icons, Menu, MenuItem, PopOut, RectCords, Text, config, toRem } from 'folds';
 import { useAtomValue } from 'jotai';
@@ -18,27 +18,41 @@ import {
   SidebarItemTooltip,
 } from '../../../components/sidebar';
 import { useHomeSelected } from '../../../hooks/router/useHomeSelected';
+import { useDirectSelected } from '../../../hooks/router/useDirectSelected';
 import { UnreadBadge } from '../../../components/unread-badge';
 import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { useNavToActivePathAtom } from '../../../state/hooks/navToActivePath';
 import { useHomeRooms } from '../home/useHomeRooms';
+import { useDirectRooms } from '../direct/useDirectRooms';
 import { markAsRead } from '../../../utils/notifications';
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
+import { Unread } from '../../../../types/matrix/room';
+
+const combineUnread = (a: Unread | undefined, b: Unread | undefined): Unread | undefined => {
+  if (!a && !b) return undefined;
+  return {
+    total: (a?.total ?? 0) + (b?.total ?? 0),
+    highlight: (a?.highlight ?? 0) + (b?.highlight ?? 0),
+    from: null,
+  };
+};
 
 type HomeMenuProps = {
   requestClose: () => void;
 };
 const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, ref) => {
   const orphanRooms = useHomeRooms();
+  const directs = useDirectRooms();
+  const allRooms = useMemo(() => orphanRooms.concat(directs), [orphanRooms, directs]);
   const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
-  const unread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
+  const unread = useRoomsUnread(allRooms, roomToUnreadAtom);
   const mx = useMatrixClient();
 
   const handleMarkAsRead = () => {
     if (!unread) return;
-    orphanRooms.forEach((rId) => markAsRead(mx, rId, hideActivity));
+    allRooms.forEach((rId) => markAsRead(mx, rId, hideActivity));
     requestClose();
   };
 
@@ -70,14 +84,19 @@ export function HomeTab() {
   const mDirects = useAtomValue(mDirectAtom);
   const roomToParents = useAtomValue(roomToParentsAtom);
   const orphanRooms = useOrphanRooms(mx, allRoomsAtom, mDirects, roomToParents);
+  const directs = useDirectRooms();
   const homeUnread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
+  const directUnread = useRoomsUnread(directs, roomToUnreadAtom);
+  const unread = combineUnread(homeUnread, directUnread);
   const homeSelected = useHomeSelected();
+  const directSelected = useDirectSelected();
+  const selected = homeSelected || directSelected;
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleHomeClick = () => {
-    const activePath = navToActivePath.get('home');
-    if (activePath && screenSize !== ScreenSize.Mobile) {
-      navigate(joinPathComponent(activePath));
+    const homeActivePath = navToActivePath.get('home');
+    if (homeActivePath && screenSize !== ScreenSize.Mobile) {
+      navigate(joinPathComponent(homeActivePath));
       return;
     }
 
@@ -94,7 +113,7 @@ export function HomeTab() {
   };
 
   return (
-    <SidebarItem active={homeSelected}>
+    <SidebarItem active={selected}>
       <SidebarItemTooltip tooltip="Home">
         {(triggerRef) => (
           <SidebarAvatar
@@ -104,13 +123,13 @@ export function HomeTab() {
             onClick={handleHomeClick}
             onContextMenu={handleContextMenu}
           >
-            <Icon src={Icons.Home} filled={homeSelected} />
+            <Icon src={Icons.Home} filled={selected} />
           </SidebarAvatar>
         )}
       </SidebarItemTooltip>
-      {homeUnread && (
-        <SidebarItemBadge hasCount={homeUnread.total > 0}>
-          <UnreadBadge highlight={homeUnread.highlight > 0} count={homeUnread.total} />
+      {unread && (
+        <SidebarItemBadge hasCount={unread.total > 0}>
+          <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
         </SidebarItemBadge>
       )}
       {menuAnchor && (
