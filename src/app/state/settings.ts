@@ -46,6 +46,8 @@ export interface Settings {
   hour24Clock: boolean;
   dateFormatString: string;
 
+  autoJoinSpaceRooms: boolean;
+
   developerTools: boolean;
 }
 
@@ -79,6 +81,8 @@ const defaultSettings: Settings = {
 
   hour24Clock: false,
   dateFormatString: 'D MMM YYYY',
+
+  autoJoinSpaceRooms: false,
 
   developerTools: false,
 };

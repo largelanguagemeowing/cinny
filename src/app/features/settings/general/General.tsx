@@ -978,6 +978,28 @@ function Messages() {
   );
 }
 
+function Spaces() {
+  const [autoJoinSpaceRooms, setAutoJoinSpaceRooms] = useSetting(
+    settingsAtom,
+    'autoJoinSpaceRooms'
+  );
+
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Spaces</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Auto Join Space Rooms"
+          description="Automatically join every room listed in a space when you open it, including rooms added later."
+          after={
+            <Switch variant="Primary" value={autoJoinSpaceRooms} onChange={setAutoJoinSpaceRooms} />
+          }
+        />
+      </SequenceCard>
+    </Box>
+  );
+}
+
 type GeneralProps = {
   requestClose: () => void;
 };
@@ -1006,6 +1028,7 @@ export function General({ requestClose }: GeneralProps) {
               <DateAndTime />
               <Editor />
               <Messages />
+              <Spaces />
             </Box>
           </PageContent>
         </Scroll>

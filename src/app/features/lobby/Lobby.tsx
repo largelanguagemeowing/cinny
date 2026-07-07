@@ -53,6 +53,7 @@ import { AccountDataEvent } from '../../../types/matrix/accountData';
 import { useRoomMembers } from '../../hooks/useRoomMembers';
 import { SpaceHierarchy } from './SpaceHierarchy';
 import { useGetRoom } from '../../hooks/useGetRoom';
+import { useAutoJoinSpaceRooms } from '../../hooks/useAutoJoinSpaceRooms';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { getRoomPermissionsAPI } from '../../hooks/useRoomPermissions';
 import { getRoomCreatorsForRoomId } from '../../hooks/useRoomCreators';
@@ -164,6 +165,7 @@ export function Lobby() {
   const [heroSectionHeight, setHeroSectionHeight] = useState<number>();
   const [spaceRooms, setSpaceRooms] = useAtom(spaceRoomsAtom);
   const [isDrawer] = useSetting(settingsAtom, 'isPeopleDrawer');
+  const [autoJoinSpaceRooms] = useSetting(settingsAtom, 'autoJoinSpaceRooms');
   const screenSize = useScreenSizeContext();
   const [onTop, setOnTop] = useState(true);
   const [closedCategories, setClosedCategories] = useAtom(useClosedLobbyCategoriesAtom());
@@ -225,6 +227,8 @@ export function Lobby() {
   );
 
   const canDrop: CanDropCallback = useCanDropLobbyItem(space, roomsPowerLevels, getRoom);
+
+  useAutoJoinSpaceRooms(hierarchy, getRoom, autoJoinSpaceRooms);
 
   const [reorderSpaceState, reorderSpace] = useAsyncCallback(
     useCallback(
