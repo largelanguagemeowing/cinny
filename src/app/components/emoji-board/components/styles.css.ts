@@ -175,7 +175,7 @@ export const GifPicker = style({
 });
 
 export const GifSearch = style({
-  padding: `0 ${config.space.S300} ${config.space.S100}`,
+  padding: `${config.space.S200} ${config.space.S300} ${config.space.S200}`,
 });
 
 export const GifScrollWrap = style({
