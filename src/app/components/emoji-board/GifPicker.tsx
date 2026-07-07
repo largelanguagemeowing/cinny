@@ -21,7 +21,7 @@ function GifTile({ gif, onClick }: { gif: KlipyGif; onClick: (gif: KlipyGif) => 
   if (!preview) return null;
 
   const { dims } = preview;
-  const aspect = dims && dims[0] ? `${dims[1]} / ${dims[0]}` : undefined;
+  const aspect = dims?.[0] && dims?.[1] ? `${dims[0]} / ${dims[1]}` : undefined;
 
   return (
     <Box
