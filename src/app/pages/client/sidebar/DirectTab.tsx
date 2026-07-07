@@ -1,79 +1,73 @@
-import React, { MouseEventHandler, forwardRef, useState } from 'react';
+import React, { MouseEventHandler, forwardRef, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Icon, Icons, Menu, MenuItem, PopOut, RectCords, Text, config, toRem } from 'folds';
 import FocusTrap from 'focus-trap-react';
-import { useAtomValue } from 'jotai';
+import { Room } from 'matrix-js-sdk';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
-import { getDirectPath, joinPathComponent } from '../../pathUtils';
-import { useRoomsUnread } from '../../../state/hooks/unread';
+import { getDirectRoomPath } from '../../pathUtils';
 import {
   SidebarAvatar,
   SidebarItem,
   SidebarItemBadge,
   SidebarItemTooltip,
 } from '../../../components/sidebar';
+import { RoomUnreadProvider } from '../../../components/RoomUnreadProvider';
+import { RoomAvatar } from '../../../components/room-avatar';
 import { UnreadBadge } from '../../../components/unread-badge';
-import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
-import { useNavToActivePathAtom } from '../../../state/hooks/navToActivePath';
 import { useDirectRooms } from '../direct/useDirectRooms';
 import { markAsRead } from '../../../utils/notifications';
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
+import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
+import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
+import { getCanonicalAliasOrRoomId } from '../../../utils/matrix';
+import { getDirectRoomAvatarUrl } from '../../../utils/room';
+import { nameInitials } from '../../../utils/common';
+import { factoryRoomIdByActivity } from '../../../utils/sort';
 
-type DirectMenuProps = {
+type DirectRoomMenuProps = {
+  room: Room;
   requestClose: () => void;
 };
-const DirectMenu = forwardRef<HTMLDivElement, DirectMenuProps>(({ requestClose }, ref) => {
-  const directs = useDirectRooms();
-  const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
-  const unread = useRoomsUnread(directs, roomToUnreadAtom);
+const DirectRoomMenu = forwardRef<HTMLDivElement, DirectRoomMenuProps>(
+  ({ room, requestClose }, ref) => {
+    const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
+    const mx = useMatrixClient();
+
+    const handleMarkAsRead = () => {
+      markAsRead(mx, room.roomId, hideActivity);
+      requestClose();
+    };
+
+    return (
+      <Menu ref={ref} style={{ maxWidth: toRem(160), width: '100vw' }}>
+        <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+          <MenuItem
+            onClick={handleMarkAsRead}
+            size="300"
+            after={<Icon size="100" src={Icons.CheckTwice} />}
+            radii="300"
+          >
+            <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+              Mark as Read
+            </Text>
+          </MenuItem>
+        </Box>
+      </Menu>
+    );
+  }
+);
+
+type DirectRoomTabProps = {
+  room: Room;
+  selected: boolean;
+  onClick: MouseEventHandler<HTMLButtonElement>;
+};
+function DirectRoomTab({ room, selected, onClick }: DirectRoomTabProps) {
   const mx = useMatrixClient();
-
-  const handleMarkAsRead = () => {
-    if (!unread) return;
-    directs.forEach((rId) => markAsRead(mx, rId, hideActivity));
-    requestClose();
-  };
-
-  return (
-    <Menu ref={ref} style={{ maxWidth: toRem(160), width: '100vw' }}>
-      <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
-        <MenuItem
-          onClick={handleMarkAsRead}
-          size="300"
-          after={<Icon size="100" src={Icons.CheckTwice} />}
-          radii="300"
-          aria-disabled={!unread}
-        >
-          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
-            Mark as Read
-          </Text>
-        </MenuItem>
-      </Box>
-    </Menu>
-  );
-});
-
-export function DirectTab() {
-  const navigate = useNavigate();
-  const screenSize = useScreenSizeContext();
-  const navToActivePath = useAtomValue(useNavToActivePathAtom());
-
-  const directs = useDirectRooms();
-  const directUnread = useRoomsUnread(directs, roomToUnreadAtom);
+  const useAuthentication = useMediaAuthentication();
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
-
-  const handleDirectClick = () => {
-    const activePath = navToActivePath.get('direct');
-    if (activePath && screenSize !== ScreenSize.Mobile) {
-      navigate(joinPathComponent(activePath));
-      return;
-    }
-
-    navigate(getDirectPath());
-  };
 
   const handleContextMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
     evt.preventDefault();
@@ -84,50 +78,101 @@ export function DirectTab() {
     });
   };
 
-  if (!directUnread) return null;
+  return (
+    <RoomUnreadProvider roomId={room.roomId}>
+      {(unread) => (
+        <SidebarItem active={selected}>
+          <SidebarItemTooltip tooltip={room.name}>
+            {(triggerRef) => (
+              <SidebarAvatar
+                as="button"
+                data-room-id={room.roomId}
+                ref={triggerRef}
+                onClick={onClick}
+                onContextMenu={handleContextMenu}
+              >
+                <RoomAvatar
+                  roomId={room.roomId}
+                  src={getDirectRoomAvatarUrl(mx, room, 96, useAuthentication) ?? undefined}
+                  alt={room.name}
+                  renderFallback={() => (
+                    <Text size="H4">{nameInitials(room.name, 2)}</Text>
+                  )}
+                />
+              </SidebarAvatar>
+            )}
+          </SidebarItemTooltip>
+          {unread && (
+            <SidebarItemBadge hasCount={unread.total > 0}>
+              <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+            </SidebarItemBadge>
+          )}
+          {menuAnchor && (
+            <PopOut
+              anchor={menuAnchor}
+              position="Right"
+              align="Start"
+              content={
+                <FocusTrap
+                  focusTrapOptions={{
+                    initialFocus: false,
+                    returnFocusOnDeactivate: false,
+                    onDeactivate: () => setMenuAnchor(undefined),
+                    clickOutsideDeactivates: true,
+                    isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
+                    isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
+                    escapeDeactivates: stopPropagation,
+                  }}
+                >
+                  <DirectRoomMenu
+                    room={room}
+                    requestClose={() => setMenuAnchor(undefined)}
+                  />
+                </FocusTrap>
+              }
+            />
+          )}
+        </SidebarItem>
+      )}
+    </RoomUnreadProvider>
+  );
+}
+
+export function DirectTab() {
+  const mx = useMatrixClient();
+  const navigate = useNavigate();
+  const directs = useDirectRooms();
+  const selectedRoomId = useSelectedRoom();
+
+  const sortedDirects = useMemo(
+    () => Array.from(directs).sort(factoryRoomIdByActivity(mx)),
+    [mx, directs]
+  );
+
+  const handleClick: MouseEventHandler<HTMLButtonElement> = (evt) => {
+    const target = evt.currentTarget;
+    const targetRoomId = target.getAttribute('data-room-id');
+    if (!targetRoomId) return;
+
+    navigate(getDirectRoomPath(getCanonicalAliasOrRoomId(mx, targetRoomId)));
+  };
+
+  if (sortedDirects.length === 0) return null;
 
   return (
-    <SidebarItem>
-      <SidebarItemTooltip tooltip="Direct Messages">
-        {(triggerRef) => (
-          <SidebarAvatar
-            as="button"
-            ref={triggerRef}
-            outlined
-            onClick={handleDirectClick}
-            onContextMenu={handleContextMenu}
-          >
-            <Icon src={Icons.User} />
-          </SidebarAvatar>
-        )}
-      </SidebarItemTooltip>
-      {directUnread && (
-        <SidebarItemBadge hasCount={directUnread.total > 0}>
-          <UnreadBadge highlight={directUnread.highlight > 0} count={directUnread.total} />
-        </SidebarItemBadge>
-      )}
-      {menuAnchor && (
-        <PopOut
-          anchor={menuAnchor}
-          position="Right"
-          align="Start"
-          content={
-            <FocusTrap
-              focusTrapOptions={{
-                initialFocus: false,
-                returnFocusOnDeactivate: false,
-                onDeactivate: () => setMenuAnchor(undefined),
-                clickOutsideDeactivates: true,
-                isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
-                isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
-                escapeDeactivates: stopPropagation,
-              }}
-            >
-              <DirectMenu requestClose={() => setMenuAnchor(undefined)} />
-            </FocusTrap>
-          }
-        />
-      )}
-    </SidebarItem>
+    <>
+      {sortedDirects.map((roomId) => {
+        const room = mx.getRoom(roomId);
+        if (!room) return null;
+        return (
+          <DirectRoomTab
+            key={roomId}
+            room={room}
+            selected={selectedRoomId === roomId}
+            onClick={handleClick}
+          />
+        );
+      })}
+    </>
   );
 }
