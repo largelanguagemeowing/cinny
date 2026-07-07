@@ -3,7 +3,7 @@ import { Box } from 'folds';
 
 type SidebarContentProps = {
   scrollable: ReactNode;
-  sticky: ReactNode;
+  sticky?: ReactNode;
 };
 export function SidebarContent({ scrollable, sticky }: SidebarContentProps) {
   return (
@@ -11,9 +11,11 @@ export function SidebarContent({ scrollable, sticky }: SidebarContentProps) {
       <Box direction="Column" grow="Yes">
         {scrollable}
       </Box>
-      <Box direction="Column" shrink="No">
-        {sticky}
-      </Box>
+      {sticky && (
+        <Box direction="Column" shrink="No">
+          {sticky}
+        </Box>
+      )}
     </>
   );
 }
