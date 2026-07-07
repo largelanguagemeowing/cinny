@@ -24,6 +24,7 @@ import { useInboxSelected } from '../../hooks/router/useInbox';
 import { UnreadBadge } from '../../components/unread-badge';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 import { useNavToActivePathAtom } from '../../state/hooks/navToActivePath';
+import { ContainerColor } from '../../styles/ContainerColor.css';
 
 function InboxButton() {
   const screenSize = useScreenSizeContext();
@@ -64,10 +65,11 @@ function InboxButton() {
             ref={triggerRef}
             variant="Background"
             fill="None"
+            size="300"
             onClick={handleInboxClick}
             aria-pressed={inboxSelected}
           >
-            <Icon src={Icons.Inbox} filled={inboxSelected} />
+            <Icon size="200" src={Icons.Inbox} filled={inboxSelected} />
           </IconButton>
         )}
       </TooltipProvider>
@@ -96,7 +98,8 @@ export function TopBar() {
   return (
     <Header
       variant="Background"
-      size="500"
+      size="400"
+      className={ContainerColor({ variant: 'Background' })}
       style={{
         borderBottomWidth: config.borderWidth.B300,
         padding: `0 ${config.space.S200}`,
