@@ -1,0 +1,110 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Header,
+  Icon,
+  IconButton,
+  Icons,
+  Text,
+  Tooltip,
+  TooltipProvider,
+  config,
+  toRem,
+} from 'folds';
+import { useAtomValue } from 'jotai';
+import { allInvitesAtom } from '../../state/room-list/inviteList';
+import {
+  getInboxInvitesPath,
+  getInboxNotificationsPath,
+  getInboxPath,
+  joinPathComponent,
+} from '../pathUtils';
+import { useInboxSelected } from '../../hooks/router/useInbox';
+import { UnreadBadge } from '../../components/unread-badge';
+import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
+import { useNavToActivePathAtom } from '../../state/hooks/navToActivePath';
+
+function InboxButton() {
+  const screenSize = useScreenSizeContext();
+  const navigate = useNavigate();
+  const navToActivePath = useAtomValue(useNavToActivePathAtom());
+  const inboxSelected = useInboxSelected();
+  const allInvites = useAtomValue(allInvitesAtom);
+  const inviteCount = allInvites.length;
+
+  const handleInboxClick = () => {
+    if (screenSize === ScreenSize.Mobile) {
+      navigate(getInboxPath());
+      return;
+    }
+    const activePath = navToActivePath.get('inbox');
+    if (activePath) {
+      navigate(joinPathComponent(activePath));
+      return;
+    }
+
+    const path = inviteCount > 0 ? getInboxInvitesPath() : getInboxNotificationsPath();
+    navigate(path);
+  };
+
+  return (
+    <Box shrink="No" style={{ position: 'relative' }}>
+      <TooltipProvider
+        position="Bottom"
+        offset={4}
+        tooltip={
+          <Tooltip>
+            <Text size="H5">Inbox</Text>
+          </Tooltip>
+        }
+      >
+        {(triggerRef) => (
+          <IconButton
+            ref={triggerRef}
+            variant="Background"
+            fill="None"
+            onClick={handleInboxClick}
+            aria-pressed={inboxSelected}
+          >
+            <Icon src={Icons.Inbox} filled={inboxSelected} />
+          </IconButton>
+        )}
+      </TooltipProvider>
+      {inviteCount > 0 && (
+        <Box
+          shrink="No"
+          alignItems="Center"
+          justifyContent="Center"
+          style={{
+            position: 'absolute',
+            top: toRem(2),
+            right: toRem(2),
+            pointerEvents: 'none',
+            lineHeight: 0,
+            minWidth: toRem(16),
+          }}
+        >
+          <UnreadBadge highlight count={inviteCount} />
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+export function TopBar() {
+  return (
+    <Header
+      variant="Background"
+      size="500"
+      style={{
+        borderBottomWidth: config.borderWidth.B300,
+        padding: `0 ${config.space.S200}`,
+      }}
+    >
+      <Box alignItems="Center" justifyContent="End" grow="Yes" gap="200">
+        <InboxButton />
+      </Box>
+    </Header>
+  );
+}
