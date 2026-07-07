@@ -159,3 +159,70 @@ export const StickerImg = style([
     objectFit: 'contain',
   },
 ]);
+
+/**
+ * GIF Picker
+ */
+
+export const GifPicker = style({
+  display: 'flex',
+  flexDirection: 'column',
+  width: '100%',
+  height: '100%',
+  // Allow the picker to shrink below its content so the inner scroll area can
+  // scroll instead of overflowing the fixed-height board.
+  minHeight: 0,
+});
+
+export const GifSearch = style({
+  padding: `0 ${config.space.S300} ${config.space.S200}`,
+});
+
+export const GifScrollWrap = style({
+  minHeight: 0,
+});
+
+// Masonry-style grid using CSS columns. Two columns fit comfortably within the
+// 432px picker width and keep thumbnails reasonably sized.
+export const GifGrid = style({
+  columnCount: 2,
+  columnGap: config.space.S200,
+  padding: `0 ${config.space.S300} ${config.space.S300}`,
+  width: '100%',
+});
+
+export const GifTile = style([
+  DefaultReset,
+  FocusOutline,
+  {
+    // Avoid a tile being split across columns.
+    breakInside: 'avoid',
+    display: 'block',
+    width: '100%',
+    marginBottom: config.space.S200,
+    padding: 0,
+    border: 'none',
+    background: 'transparent',
+    borderRadius: config.radii.R300,
+    overflow: 'hidden',
+    cursor: 'pointer',
+
+    ':hover': {
+      backgroundColor: color.Surface.ContainerHover,
+    },
+  },
+]);
+
+export const GifTileImg = style([
+  DefaultReset,
+  {
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+    objectFit: 'contain',
+  },
+]);
+
+export const GifStatus = style({
+  padding: `${config.space.S500} ${config.space.S400}`,
+});

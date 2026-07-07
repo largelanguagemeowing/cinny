@@ -56,6 +56,7 @@ import {
   replaceShortcodeWithEmoji,
 } from '../../components/editor';
 import { EmojiBoard, EmojiBoardTab } from '../../components/emoji-board';
+import { getGifToSend, KlipyGif } from '../../utils/klipy';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import {
   TUploadContent,
@@ -459,6 +460,58 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       });
     };
 
+    const handleGifSelect = async (gif: KlipyGif) => {
+      const format = getGifToSend(gif);
+      if (!format?.url) return;
+
+      try {
+        const resp = await fetch(format.url);
+        if (!resp.ok) return;
+        const blob = await resp.blob();
+        const safeTitle =
+          (gif.title || 'gif')
+            .replace(/[/\\?%*:|"<>/]/g, '')
+            .trim()
+            .slice(0, 50) || 'gif';
+        const file = new File([blob], `${safeTitle}.gif`, {
+          type: blob.type || 'image/gif',
+        });
+
+        const encData = room.hasEncryptionStateEvent() ? await encryptFile(file) : undefined;
+        const uploadFile = encData?.file ?? file;
+
+        const uploadData = await mx.uploadContent(uploadFile);
+        const mxc = uploadData?.content_uri;
+        if (!mxc) return;
+
+        const item: TUploadItem = {
+          file,
+          originalFile: file,
+          encInfo: encData?.encInfo,
+          metadata: { markedAsSpoiler: false },
+        };
+        const content = await getImageMsgContent(mx, item, mxc);
+
+        if (replyDraft) {
+          content['m.relates_to'] = {
+            'm.in_reply_to': {
+              event_id: replyDraft.eventId,
+            },
+          };
+          if (replyDraft.relation?.rel_type === RelationType.Thread) {
+            content['m.relates_to'].event_id = replyDraft.relation.event_id;
+            content['m.relates_to'].rel_type = RelationType.Thread;
+            content['m.relates_to'].is_falling_back = false;
+          }
+        }
+
+        mx.sendMessage(roomId, content as any);
+        if (replyDraft) setReplyDraft(undefined);
+      } catch (e) {
+        console.error('Failed to send GIF', e);
+      }
+    };
+
     return (
       <div ref={ref}>
         {selectedFiles.length > 0 && (
@@ -637,6 +690,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
                         onEmojiSelect={handleEmoticonSelect}
                         onCustomEmojiSelect={handleEmoticonSelect}
                         onStickerSelect={handleStickerSelect}
+                        onGifSelect={handleGifSelect}
                         requestClose={() => {
                           setEmojiBoardTab((t) => {
                             if (t) {

@@ -1,0 +1,87 @@
+// Klipy GIF API client.
+// Klipy is a free GIF API service: https://docs.klipy.com
+//
+// This key is a public, free-tier API key bundled for convenience (the same
+// approach used by other open-source clients such as gomuks). It is safe to
+// ship in client-side code. If you want to use your own key, replace the value
+// below with one obtained from https://docs.klipy.com
+const KLIPY_API_KEY = 'Qy1TVEgEphESxOxmLkKghRD6O0ZZB7TOBTEKZavPBoZcmfUWv2ydB3NzjKguRvTR';
+
+const KLIPY_BASE_URL = 'https://api.klipy.com/v2';
+
+// We only request the formats we actually use: tinygif for the picker
+// thumbnails and mediumgif for the file we upload and send.
+const MEDIA_FILTER = 'tinygif,mediumgif';
+
+export type KlipyMediaFormat = {
+  url: string;
+  duration?: number;
+  preview?: string;
+  dims?: [number, number];
+  size?: number;
+};
+
+export type KlipyGif = {
+  id: string;
+  title: string;
+  media_formats: {
+    tinygif?: KlipyMediaFormat;
+    mediumgif?: KlipyMediaFormat;
+    [key: string]: KlipyMediaFormat | undefined;
+  };
+  url?: string;
+  itemurl?: string;
+  tags?: string[];
+};
+
+type KlipyResponse = {
+  results?: KlipyGif[];
+  next?: string;
+};
+
+const doRequest = async (url: URL, signal?: AbortSignal): Promise<KlipyResponse> => {
+  const resp = await fetch(url, { signal });
+  if (!resp.ok) {
+    throw new Error(`Klipy request failed: HTTP ${resp.status}`);
+  }
+  return (await resp.json()) as KlipyResponse;
+};
+
+export type KlipyPage = {
+  gifs: KlipyGif[];
+  next: string | undefined;
+};
+
+export const fetchTrendingGifs = async (pos?: string, signal?: AbortSignal): Promise<KlipyPage> => {
+  const url = new URL(`${KLIPY_BASE_URL}/featured`);
+  url.searchParams.set('key', KLIPY_API_KEY);
+  url.searchParams.set('limit', '40');
+  url.searchParams.set('media_filter', MEDIA_FILTER);
+  if (pos) url.searchParams.set('pos', pos);
+  const data = await doRequest(url, signal);
+  return { gifs: data.results ?? [], next: data.next };
+};
+
+export const searchGifs = async (
+  query: string,
+  pos?: string,
+  signal?: AbortSignal
+): Promise<KlipyPage> => {
+  const url = new URL(`${KLIPY_BASE_URL}/search`);
+  url.searchParams.set('key', KLIPY_API_KEY);
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', '40');
+  url.searchParams.set('media_filter', MEDIA_FILTER);
+  if (pos) url.searchParams.set('pos', pos);
+  const data = await doRequest(url, signal);
+  return { gifs: data.results ?? [], next: data.next };
+};
+
+// Pick the best available format to send as a Matrix image message. We prefer
+// mediumgif for quality/size balance, falling back to tinygif.
+export const getGifToSend = (gif: KlipyGif): KlipyMediaFormat | undefined =>
+  gif.media_formats.mediumgif ?? gif.media_formats.tinygif;
+
+// Pick the format to display as a thumbnail in the picker grid.
+export const getGifPreview = (gif: KlipyGif): KlipyMediaFormat | undefined =>
+  gif.media_formats.tinygif ?? gif.media_formats.mediumgif;
