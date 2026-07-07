@@ -6,9 +6,9 @@ import { toRem, color, config, DefaultReset, FocusOutline } from 'folds';
  */
 
 export const Base = style({
-  maxWidth: toRem(432),
+  maxWidth: toRem(498),
   width: `calc(100vw - 2 * ${config.space.S400})`,
-  height: toRem(450),
+  height: toRem(440),
   backgroundColor: color.Surface.Container,
   color: color.Surface.OnContainer,
   border: `${config.borderWidth.B300} solid ${color.Surface.ContainerLine}`,
@@ -182,11 +182,11 @@ export const GifScrollWrap = style({
   minHeight: 0,
 });
 
-// Masonry-style grid using CSS columns. Two columns fit comfortably within the
-// 432px picker width and keep thumbnails reasonably sized.
+// Masonry-style grid using CSS columns. Two columns with 12px gaps match
+// Discord's GIF picker layout within the 498px picker width.
 export const GifGrid = style({
   columnCount: 2,
-  columnGap: config.space.S200,
+  columnGap: config.space.S300,
   padding: `0 ${config.space.S300} ${config.space.S300}`,
   width: '100%',
 });
