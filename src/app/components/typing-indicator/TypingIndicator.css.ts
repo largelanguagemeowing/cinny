@@ -3,6 +3,9 @@ import { recipe } from '@vanilla-extract/recipes';
 import { DefaultReset, toRem } from 'folds';
 
 const TypingDotAnime = keyframes({
+  from: {
+    transform: 'translateY(15%)',
+  },
   to: {
     opacity: '0.4',
     transform: 'translateY(-15%)',
@@ -16,7 +19,6 @@ export const TypingDot = recipe({
       display: 'inline-block',
       backgroundColor: 'currentColor',
       borderRadius: '50%',
-      transform: 'translateY(15%)',
     },
   ],
   variants: {
