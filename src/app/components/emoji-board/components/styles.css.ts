@@ -175,7 +175,7 @@ export const GifPicker = style({
 });
 
 export const GifSearch = style({
-  padding: `0 ${config.space.S300} ${config.space.S200}`,
+  padding: `0 ${config.space.S300} ${config.space.S100}`,
 });
 
 export const GifScrollWrap = style({
@@ -187,7 +187,7 @@ export const GifScrollWrap = style({
 export const GifGrid = style({
   columnCount: 2,
   columnGap: config.space.S300,
-  padding: `0 ${config.space.S300} ${config.space.S300}`,
+  padding: `0 ${config.space.S300} ${config.space.S100}`,
   width: '100%',
 });
 
@@ -199,7 +199,7 @@ export const GifTile = style([
     breakInside: 'avoid',
     display: 'block',
     width: '100%',
-    marginBottom: config.space.S200,
+    marginBottom: config.space.S100,
     padding: 0,
     border: 'none',
     background: 'transparent',
