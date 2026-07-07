@@ -113,6 +113,7 @@ export function GifPicker({ onGifSelect, requestClose }: GifPickerProps) {
     <Box className={css.GifPicker} direction="Column" grow="Yes">
       <Box className={css.GifSearch} shrink="No">
         <Input
+          grow="Yes"
           variant="SurfaceVariant"
           size="400"
           placeholder="Search GIFs"
