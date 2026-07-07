@@ -106,7 +106,7 @@ import { GetContentCallback, MessageEvent, StateEvent } from '../../../types/mat
 import { useKeyDown } from '../../hooks/useKeyDown';
 import { useDocumentFocusChange } from '../../hooks/useDocumentFocusChange';
 import { RenderMessageContent } from '../../components/RenderMessageContent';
-import { Image } from '../../components/media';
+import { PausableImage } from '../../components/media';
 import { ImageViewer } from '../../components/image-viewer';
 import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { useRoomUnread } from '../../state/hooks/unread';
@@ -1164,7 +1164,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
                         <ImageContent
                           {...props}
                           autoPlay={mediaAutoLoad}
-                          renderImage={(p) => <Image {...p} loading="lazy" />}
+                          renderImage={(p) => <PausableImage {...p} loading="lazy" />}
                           renderViewer={(p) => <ImageViewer {...p} />}
                         />
                       )}
@@ -1265,7 +1265,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
                   <ImageContent
                     {...props}
                     autoPlay={mediaAutoLoad}
-                    renderImage={(p) => <Image {...p} loading="lazy" />}
+                    renderImage={(p) => <PausableImage {...p} loading="lazy" />}
                     renderViewer={(p) => <ImageViewer {...p} />}
                   />
                 )}

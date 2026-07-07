@@ -23,7 +23,7 @@ import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
 import { IImageInfo, MATRIX_BLUR_HASH_PROPERTY_NAME } from '../../../../types/matrix/common';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
+import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import * as css from './style.css';
 import { bytesToSize } from '../../../utils/common';
 import { FALLBACK_MIMETYPE } from '../../../utils/mimeTypes';
@@ -46,6 +46,7 @@ type RenderImageProps = {
   onError: () => void;
   onClick: () => void;
   tabIndex: number;
+  paused?: boolean;
 };
 export type ImageContentProps = {
   body: string;
@@ -80,7 +81,9 @@ export const ImageContent = as<'div', ImageContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
-    const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
+    const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
+    const isAnimated = mimeType === 'image/gif';
+    const paused = lowAnimationMode && isAnimated && !hovered;
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -115,8 +118,8 @@ export const ImageContent = as<'div', ImageContentProps>(
     };
 
     useEffect(() => {
-      if (autoPlay) loadSrc();
-    }, [autoPlay, loadSrc]);
+      if (autoPlayProp ?? true) loadSrc();
+    }, [autoPlayProp, loadSrc]);
 
     return (
       <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
@@ -155,7 +158,7 @@ export const ImageContent = as<'div', ImageContentProps>(
             punch={1}
           />
         )}
-        {!autoPlay && !markedAsSpoiler && srcState.status === AsyncStatus.Idle && (
+        {!autoPlayProp && !markedAsSpoiler && srcState.status === AsyncStatus.Idle && (
           <Box className={css.AbsoluteContainer} alignItems="Center" justifyContent="Center">
             <Button
               variant="Secondary"
@@ -179,6 +182,7 @@ export const ImageContent = as<'div', ImageContentProps>(
               onError: handleError,
               onClick: () => setViewer(true),
               tabIndex: 0,
+              paused,
             })}
           </Box>
         )}

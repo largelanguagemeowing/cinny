@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -14,7 +14,7 @@ import {
 import { Attachment, AttachmentBox, AttachmentHeader } from '../attachment';
 import { FileHeader } from '../FileHeader';
 import { Video } from '../../media';
-import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
+import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import * as css from './style.css';
 import { scaleYDimension } from '../../../utils/common';
 
@@ -30,15 +30,22 @@ const MAX_HEIGHT = 600;
 const SCALED_WIDTH = 400;
 
 export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayProp }: OoyeGifContentProps) {
-  const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
+  const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
-  const [showVideo, setShowVideo] = useState(autoPlay);
+  const [showVideo, setShowVideo] = useState(autoPlayProp ?? false);
 
+  // Play / pause based on hover in low animation mode
   useEffect(() => {
-    if (autoPlay) setShowVideo(true);
-  }, [autoPlay]);
+    if (!lowAnimationMode || !videoRef.current) return;
+    if (hovered) {
+      videoRef.current.play().catch(() => undefined);
+    } else {
+      videoRef.current.pause();
+    }
+  }, [lowAnimationMode, hovered, showVideo, loaded]);
 
   const linkUrl = pageUrl ?? videoUrl;
 
@@ -90,8 +97,9 @@ export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayPro
             <Box className={css.AbsoluteContainer}>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <Video
+                ref={videoRef}
                 src={videoUrl}
-                autoPlay
+                autoPlay={!lowAnimationMode}
                 loop
                 muted
                 controls

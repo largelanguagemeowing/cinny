@@ -65,7 +65,7 @@ import {
 import { RenderMessageContent } from '../../../components/RenderMessageContent';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
-import { Image } from '../../../components/media';
+import { PausableImage } from '../../../components/media';
 import { ImageViewer } from '../../../components/image-viewer';
 import { GetContentCallback, MessageEvent, StateEvent } from '../../../../types/matrix/room';
 import { useMatrixEventRenderer } from '../../../hooks/useMatrixEventRenderer';
@@ -308,7 +308,7 @@ function RoomNotificationsGroupComp({
                       <ImageContent
                         {...props}
                         autoPlay={mediaAutoLoad}
-                        renderImage={(p) => <Image {...p} loading="lazy" />}
+                        renderImage={(p) => <PausableImage {...p} loading="lazy" />}
                         renderViewer={(p) => <ImageViewer {...p} />}
                       />
                     )}
@@ -364,7 +364,7 @@ function RoomNotificationsGroupComp({
               <ImageContent
                 {...props}
                 autoPlay={mediaAutoLoad}
-                renderImage={(p) => <Image {...p} loading="lazy" />}
+                renderImage={(p) => <PausableImage {...p} loading="lazy" />}
                 renderViewer={(p) => <ImageViewer {...p} />}
               />
             )}

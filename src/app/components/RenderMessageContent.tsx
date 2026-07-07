@@ -26,7 +26,7 @@ import {
   VideoContent,
 } from './message';
 import { UrlPreviewCard, UrlPreviewHolder } from './url-preview';
-import { Image, MediaControl, Video } from './media';
+import { Image, MediaControl, PausableImage, Video } from './media';
 import { ImageViewer } from './image-viewer';
 import { PdfViewer } from './Pdf-viewer';
 import { TextViewer } from './text-viewer';
@@ -216,7 +216,7 @@ export function RenderMessageContent({
             <ImageContent
               {...props}
               autoPlay={mediaAutoLoad}
-              renderImage={(p) => <Image {...p} loading="lazy" />}
+              renderImage={(p) => <PausableImage {...p} loading="lazy" />}
               renderViewer={(p) => <ImageViewer {...p} />}
             />
           )}
@@ -250,7 +250,10 @@ export function RenderMessageContent({
                     )
                   : undefined
               }
-              renderVideo={(p) => <Video {...p} />}
+              renderVideo={(p) => {
+                const { videoRef, ...rest } = p;
+                return <Video {...rest} ref={videoRef} />;
+              }}
             />
           )}
           outlined={outlineAttachment}

@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Badge,
   Box,
@@ -22,7 +22,7 @@ import {
 } from '../../../../types/matrix/common';
 import * as css from './style.css';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { useMediaHoverAutoPlay } from '../../../hooks/useMediaHoverAutoPlay';
+import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { bytesToSize, millisecondsToMinutesAndSeconds } from '../../../utils/common';
 import {
@@ -41,6 +41,7 @@ type RenderVideoProps = {
   onError: () => void;
   autoPlay: boolean;
   controls: boolean;
+  videoRef?: React.Ref<HTMLVideoElement>;
 };
 type VideoContentProps = {
   body: string;
@@ -75,7 +76,8 @@ export const VideoContent = as<'div', VideoContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info.thumbnail_info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
-    const { autoPlay, hoverProps } = useMediaHoverAutoPlay(autoPlayProp ?? false);
+    const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -108,8 +110,18 @@ export const VideoContent = as<'div', VideoContentProps>(
     };
 
     useEffect(() => {
-      if (autoPlay) loadSrc();
-    }, [autoPlay, loadSrc]);
+      if (autoPlayProp ?? true) loadSrc();
+    }, [autoPlayProp, loadSrc]);
+
+    // Play / pause based on hover in low animation mode
+    useEffect(() => {
+      if (!lowAnimationMode || !videoRef.current) return;
+      if (hovered) {
+        videoRef.current.play().catch(() => undefined);
+      } else {
+        videoRef.current.pause();
+      }
+    }, [lowAnimationMode, hovered, srcState.status]);
 
     return (
       <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
@@ -131,7 +143,7 @@ export const VideoContent = as<'div', VideoContentProps>(
             {renderThumbnail()}
           </Box>
         )}
-        {!autoPlay && !blurred && srcState.status === AsyncStatus.Idle && (
+        {!autoPlayProp && !blurred && srcState.status === AsyncStatus.Idle && (
           <Box className={css.AbsoluteContainer} alignItems="Center" justifyContent="Center">
             <Button
               variant="Secondary"
@@ -152,8 +164,9 @@ export const VideoContent = as<'div', VideoContentProps>(
               src: srcState.data,
               onLoadedMetadata: handleLoad,
               onError: handleError,
-              autoPlay: true,
+              autoPlay: !lowAnimationMode,
               controls: true,
+              videoRef,
             })}
           </Box>
         )}
