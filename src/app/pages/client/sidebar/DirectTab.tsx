@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Icon, Icons, Menu, MenuItem, PopOut, RectCords, Text, config, toRem } from 'folds';
 import FocusTrap from 'focus-trap-react';
 import { Room } from 'matrix-js-sdk';
+import { useAtomValue } from 'jotai';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
 import { getDirectRoomPath } from '../../pathUtils';
 import {
   SidebarAvatar,
@@ -143,10 +145,14 @@ export function DirectTab() {
   const navigate = useNavigate();
   const directs = useDirectRooms();
   const selectedRoomId = useSelectedRoom();
+  const roomToUnread = useAtomValue(roomToUnreadAtom);
 
   const sortedDirects = useMemo(
-    () => Array.from(directs).sort(factoryRoomIdByActivity(mx)),
-    [mx, directs]
+    () =>
+      Array.from(directs)
+        .filter((rId) => roomToUnread.has(rId) || rId === selectedRoomId)
+        .sort(factoryRoomIdByActivity(mx)),
+    [mx, directs, roomToUnread, selectedRoomId]
   );
 
   const handleClick: MouseEventHandler<HTMLButtonElement> = (evt) => {
