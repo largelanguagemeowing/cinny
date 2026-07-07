@@ -1,15 +1,11 @@
 import React, { MouseEventHandler, forwardRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Icon, Icons, Menu, MenuItem, PopOut, RectCords, Text, config, toRem } from 'folds';
-import { useAtomValue } from 'jotai';
 import FocusTrap from 'focus-trap-react';
-import { useOrphanRooms } from '../../../state/hooks/roomList';
+import { useAtomValue } from 'jotai';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { mDirectAtom } from '../../../state/mDirectList';
-import { roomToParentsAtom } from '../../../state/room/roomToParents';
-import { allRoomsAtom } from '../../../state/room-list/roomList';
 import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
-import { getHomePath, joinPathComponent } from '../../pathUtils';
+import { getDirectPath, joinPathComponent } from '../../pathUtils';
 import { useRoomsUnread } from '../../../state/hooks/unread';
 import {
   SidebarAvatar,
@@ -17,29 +13,27 @@ import {
   SidebarItemBadge,
   SidebarItemTooltip,
 } from '../../../components/sidebar';
-import { useHomeSelected } from '../../../hooks/router/useHomeSelected';
-import { useDirectSelected } from '../../../hooks/router/useDirectSelected';
 import { UnreadBadge } from '../../../components/unread-badge';
 import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { useNavToActivePathAtom } from '../../../state/hooks/navToActivePath';
-import { useHomeRooms } from '../home/useHomeRooms';
+import { useDirectRooms } from '../direct/useDirectRooms';
 import { markAsRead } from '../../../utils/notifications';
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 
-type HomeMenuProps = {
+type DirectMenuProps = {
   requestClose: () => void;
 };
-const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, ref) => {
-  const orphanRooms = useHomeRooms();
+const DirectMenu = forwardRef<HTMLDivElement, DirectMenuProps>(({ requestClose }, ref) => {
+  const directs = useDirectRooms();
   const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
-  const unread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
+  const unread = useRoomsUnread(directs, roomToUnreadAtom);
   const mx = useMatrixClient();
 
   const handleMarkAsRead = () => {
     if (!unread) return;
-    orphanRooms.forEach((rId) => markAsRead(mx, rId, hideActivity));
+    directs.forEach((rId) => markAsRead(mx, rId, hideActivity));
     requestClose();
   };
 
@@ -62,29 +56,23 @@ const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, re
   );
 });
 
-export function HomeTab() {
+export function DirectTab() {
   const navigate = useNavigate();
-  const mx = useMatrixClient();
   const screenSize = useScreenSizeContext();
   const navToActivePath = useAtomValue(useNavToActivePathAtom());
 
-  const mDirects = useAtomValue(mDirectAtom);
-  const roomToParents = useAtomValue(roomToParentsAtom);
-  const orphanRooms = useOrphanRooms(mx, allRoomsAtom, mDirects, roomToParents);
-  const unread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
-  const homeSelected = useHomeSelected();
-  const directSelected = useDirectSelected();
-  const selected = homeSelected || directSelected;
+  const directs = useDirectRooms();
+  const directUnread = useRoomsUnread(directs, roomToUnreadAtom);
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
-  const handleHomeClick = () => {
-    const homeActivePath = navToActivePath.get('home');
-    if (homeActivePath && screenSize !== ScreenSize.Mobile) {
-      navigate(joinPathComponent(homeActivePath));
+  const handleDirectClick = () => {
+    const activePath = navToActivePath.get('direct');
+    if (activePath && screenSize !== ScreenSize.Mobile) {
+      navigate(joinPathComponent(activePath));
       return;
     }
 
-    navigate(getHomePath());
+    navigate(getDirectPath());
   };
 
   const handleContextMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -96,24 +84,26 @@ export function HomeTab() {
     });
   };
 
+  if (!directUnread) return null;
+
   return (
-    <SidebarItem active={selected}>
-      <SidebarItemTooltip tooltip="Home">
+    <SidebarItem>
+      <SidebarItemTooltip tooltip="Direct Messages">
         {(triggerRef) => (
           <SidebarAvatar
             as="button"
             ref={triggerRef}
             outlined
-            onClick={handleHomeClick}
+            onClick={handleDirectClick}
             onContextMenu={handleContextMenu}
           >
-            <Icon src={Icons.Home} filled={selected} />
+            <Icon src={Icons.User} />
           </SidebarAvatar>
         )}
       </SidebarItemTooltip>
-      {unread && (
-        <SidebarItemBadge hasCount={unread.total > 0}>
-          <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+      {directUnread && (
+        <SidebarItemBadge hasCount={directUnread.total > 0}>
+          <UnreadBadge highlight={directUnread.highlight > 0} count={directUnread.total} />
         </SidebarItemBadge>
       )}
       {menuAnchor && (
@@ -133,7 +123,7 @@ export function HomeTab() {
                 escapeDeactivates: stopPropagation,
               }}
             >
-              <HomeMenu requestClose={() => setMenuAnchor(undefined)} />
+              <DirectMenu requestClose={() => setMenuAnchor(undefined)} />
             </FocusTrap>
           }
         />

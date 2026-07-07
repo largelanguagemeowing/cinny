@@ -7,7 +7,7 @@ import {
   SidebarStackSeparator,
   SidebarStack,
 } from '../../components/sidebar';
-import { HomeTab, SpaceTabs, ExploreTab, SettingsTab, UnverifiedTab } from './sidebar';
+import { HomeTab, DirectTab, SpaceTabs, ExploreTab, SettingsTab, UnverifiedTab } from './sidebar';
 import { CreateTab } from './sidebar/CreateTab';
 
 export function SidebarNav() {
@@ -20,6 +20,7 @@ export function SidebarNav() {
           <Scroll ref={scrollRef} variant="Background" size="0">
             <SidebarStack>
               <HomeTab />
+              <DirectTab />
             </SidebarStack>
             <SpaceTabs scrollRef={scrollRef} />
             <SidebarStackSeparator />
