@@ -9,6 +9,7 @@ import { getDirectRoomAvatarUrl } from '../../../utils/room';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { AutocompleteQuery } from './autocompleteQuery';
 import { AutocompleteMenu } from './AutocompleteMenu';
+import { useAutocompleteEnter } from './useAutocompleteEnter';
 import { getMxIdServer, isRoomAlias } from '../../../utils/matrix';
 import { UseAsyncSearchOptions, useAsyncSearch } from '../../../hooks/useAsyncSearch';
 import { onTabPress } from '../../../utils/keyboard';
@@ -118,19 +119,25 @@ export function RoomMentionAutocomplete({
     requestClose();
   };
 
+  const acceptFirst = () => {
+    if (autoCompleteRoomIds.length === 0) {
+      const alias = roomAliasFromQueryText(mx, query.text);
+      handleAutocomplete(alias, alias);
+      return;
+    }
+    const rId = autoCompleteRoomIds[0];
+    const r = mx.getRoom(rId);
+    const name = r?.name ?? rId;
+    handleAutocomplete(r?.getCanonicalAlias() ?? rId, name);
+  };
+
   useKeyDown(window, (evt: KeyboardEvent) => {
-    onTabPress(evt, () => {
-      if (autoCompleteRoomIds.length === 0) {
-        const alias = roomAliasFromQueryText(mx, query.text);
-        handleAutocomplete(alias, alias);
-        return;
-      }
-      const rId = autoCompleteRoomIds[0];
-      const r = mx.getRoom(rId);
-      const name = r?.name ?? rId;
-      handleAutocomplete(r?.getCanonicalAlias() ?? rId, name);
-    });
+    onTabPress(evt, acceptFirst);
   });
+
+  // The room list always exposes at least the unknown room fallback, so Enter
+  // can always accept a suggestion.
+  useAutocompleteEnter({ hasItems: true, accept: acceptFirst });
 
   return (
     <AutocompleteMenu headerContent={<Text size="L400">Rooms</Text>} requestClose={requestClose}>

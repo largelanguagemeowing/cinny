@@ -5,6 +5,7 @@ import { Room } from 'matrix-js-sdk';
 
 import { AutocompleteQuery } from './autocompleteQuery';
 import { AutocompleteMenu } from './AutocompleteMenu';
+import { useAutocompleteEnter } from './useAutocompleteEnter';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { UseAsyncSearchOptions, useAsyncSearch } from '../../../hooks/useAsyncSearch';
 import { onTabPress } from '../../../utils/keyboard';
@@ -74,14 +75,20 @@ export function EmoticonAutocomplete({
     requestClose();
   };
 
+  const acceptFirst = () => {
+    if (autoCompleteEmoticon.length === 0) return;
+    const emoticon = autoCompleteEmoticon[0];
+    const key = 'url' in emoticon ? emoticon.url : emoticon.unicode;
+    handleAutocomplete(key, emoticon.shortcode);
+  };
+
   useKeyDown(window, (evt: KeyboardEvent) => {
-    onTabPress(evt, () => {
-      if (autoCompleteEmoticon.length === 0) return;
-      const emoticon = autoCompleteEmoticon[0];
-      const key = 'url' in emoticon ? emoticon.url : emoticon.unicode;
-      handleAutocomplete(key, emoticon.shortcode);
-    });
+    onTabPress(evt, acceptFirst);
   });
+
+  // Only intercept Enter when there is an emoji to accept; otherwise let the
+  // editor keep its default behaviour (e.g. sending the message).
+  useAutocompleteEnter({ hasItems: autoCompleteEmoticon.length > 0, accept: acceptFirst });
 
   return autoCompleteEmoticon.length === 0 ? null : (
     <AutocompleteMenu headerContent={<Text size="L400">Emojis</Text>} requestClose={requestClose}>

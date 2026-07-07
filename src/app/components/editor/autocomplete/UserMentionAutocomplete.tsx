@@ -5,6 +5,7 @@ import { MatrixClient, Room, RoomMember } from 'matrix-js-sdk';
 
 import { AutocompleteQuery } from './autocompleteQuery';
 import { AutocompleteMenu } from './AutocompleteMenu';
+import { useAutocompleteEnter } from './useAutocompleteEnter';
 import { useRoomMembers } from '../../../hooks/useRoomMembers';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import {
@@ -117,21 +118,27 @@ export function UserMentionAutocomplete({
     requestClose();
   };
 
+  const acceptFirst = () => {
+    if (query.text === 'room') {
+      handleAutocomplete(roomAliasOrId, '@room');
+      return;
+    }
+    if (autoCompleteMembers.length === 0) {
+      const userId = userIdFromQueryText(mx, query.text);
+      handleAutocomplete(userId, userId);
+      return;
+    }
+    const roomMember = autoCompleteMembers[0];
+    handleAutocomplete(roomMember.userId, roomMember.name);
+  };
+
   useKeyDown(window, (evt: KeyboardEvent) => {
-    onTabPress(evt, () => {
-      if (query.text === 'room') {
-        handleAutocomplete(roomAliasOrId, '@room');
-        return;
-      }
-      if (autoCompleteMembers.length === 0) {
-        const userId = userIdFromQueryText(mx, query.text);
-        handleAutocomplete(userId, userId);
-        return;
-      }
-      const roomMember = autoCompleteMembers[0];
-      handleAutocomplete(roomMember.userId, roomMember.name);
-    });
+    onTabPress(evt, acceptFirst);
   });
+
+  // The mention list always exposes at least the unknown user fallback, so
+  // Enter can always accept a suggestion.
+  useAutocompleteEnter({ hasItems: true, accept: acceptFirst });
 
   const getName = (member: RoomMember) =>
     getMemberDisplayName(room, member.userId) ?? getMxIdLocalPart(member.userId) ?? member.userId;

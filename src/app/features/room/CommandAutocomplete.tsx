@@ -13,6 +13,7 @@ import {
 import { UseAsyncSearchOptions, useAsyncSearch } from '../../hooks/useAsyncSearch';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useKeyDown } from '../../hooks/useKeyDown';
+import { useAutocompleteEnter } from '../../components/editor/autocomplete/useAutocompleteEnter';
 import { onTabPress } from '../../utils/keyboard';
 
 type CommandAutoCompleteHandler = (commandName: string) => void;
@@ -60,15 +61,19 @@ export function CommandAutocomplete({
     requestClose();
   };
 
+  const acceptFirst = () => {
+    if (autoCompleteNames.length === 0) return;
+    const cmdName = autoCompleteNames[0];
+    handleAutocomplete(cmdName);
+  };
+
   useKeyDown(window, (evt: KeyboardEvent) => {
-    onTabPress(evt, () => {
-      if (autoCompleteNames.length === 0) {
-        return;
-      }
-      const cmdName = autoCompleteNames[0];
-      handleAutocomplete(cmdName);
-    });
+    onTabPress(evt, acceptFirst);
   });
+
+  // Only intercept Enter when there is a command to accept; otherwise let the
+  // editor keep its default behaviour (e.g. sending the message).
+  useAutocompleteEnter({ hasItems: autoCompleteNames.length > 0, accept: acceptFirst });
 
   return autoCompleteNames.length === 0 ? null : (
     <AutocompleteMenu
