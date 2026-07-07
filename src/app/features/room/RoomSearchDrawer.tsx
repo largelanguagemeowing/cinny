@@ -333,6 +333,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
                     radii="Pill"
                     outlined
                     aria-pressed
+                    type="button"
                     onClick={handleClear}
                     after={<Icon size="50" src={Icons.Cross} />}
                   >
@@ -356,6 +357,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
               <IconButton
                 ref={triggerRef}
                 variant="Background"
+                type="button"
                 onClick={() => setPeopleDrawer(false)}
                 aria-label="Close member list"
               >
