@@ -195,6 +195,8 @@ export const GifTile = style([
   DefaultReset,
   FocusOutline,
   {
+    // Anchor the absolutely-positioned favourite star to each tile.
+    position: 'relative',
     // Avoid a tile being split across columns.
     breakInside: 'avoid',
     display: 'block',
@@ -283,7 +285,7 @@ export const GifFavBtn = style([
   {
     position: 'absolute',
     top: config.space.S100,
-    right: config.space.S100,
+    left: config.space.S100,
     zIndex: 2,
     display: 'flex',
     alignItems: 'center',
