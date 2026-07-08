@@ -8,11 +8,13 @@ type ClientLayoutProps = {
 };
 export function ClientLayout({ nav, children }: ClientLayoutProps) {
   return (
-    <Box grow="Yes">
-      <Box shrink="No">{nav}</Box>
-      <Box grow="Yes" direction="Column">
-        <TopBar />
-        {children}
+    <Box grow="Yes" direction="Column">
+      <TopBar />
+      <Box grow="Yes">
+        <Box shrink="No">{nav}</Box>
+        <Box grow="Yes" direction="Column">
+          {children}
+        </Box>
       </Box>
     </Box>
   );
