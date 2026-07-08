@@ -1,6 +1,5 @@
 import React, { FormEventHandler, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Avatar,
   Box,
   Chip,
   Header,
@@ -8,7 +7,6 @@ import {
   IconButton,
   Icons,
   Input,
-  MenuItem,
   Scroll,
   Spinner,
   Text,
@@ -18,14 +16,13 @@ import {
 } from 'folds';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { IEventWithRoomId, RelationType, Room, RoomMember } from 'matrix-js-sdk';
+import { Room, RoomMember } from 'matrix-js-sdk';
 import { useAtomValue } from 'jotai';
 import classNames from 'classnames';
 
 import * as css from './RoomSearchDrawer.css';
 import { MembersDrawer } from './MembersDrawer';
 import { ContainerColor } from '../../styles/ContainerColor.css';
-import { LineClamp2 } from '../../styles/Text.css';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useSpaceOptionally } from '../../hooks/useSpace';
 import { useRoomNavigate } from '../../hooks/useRoomNavigate';
@@ -41,101 +38,9 @@ import {
   useSpaceChildren,
 } from '../../state/hooks/roomList';
 import { useMessageSearch } from '../message-search/useMessageSearch';
-import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
-import { getMemberAvatarMxc, getMemberDisplayName } from '../../utils/room';
-import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
-import { UserAvatar } from '../../components/user-avatar';
+import { SearchResultGroup } from '../message-search/SearchResultGroup';
 import { VirtualTile } from '../../components/virtualizer';
 import { ScrollTopContainer } from '../../components/scroll-top-container';
-import { Time } from '../../components/message';
-
-const getMessageBody = (event: IEventWithRoomId): string => {
-  if (event.unsigned?.redacted_because) return 'Message deleted';
-  const content = (event.content['m.new_content'] ?? event.content) as Record<string, unknown>;
-  const msgtype = content.msgtype as string | undefined;
-  const body = typeof content.body === 'string' ? content.body : '';
-  switch (msgtype) {
-    case 'm.image':
-      return body || 'Photo';
-    case 'm.video':
-      return body || 'Video';
-    case 'm.audio':
-      return body || 'Audio';
-    case 'm.file':
-      return body || 'File';
-    case 'm.sticker':
-      return body || 'Sticker';
-    default:
-      return body || 'Message';
-  }
-};
-
-type ResultItemProps = {
-  roomId: string;
-  event: IEventWithRoomId;
-  onOpen: (roomId: string, eventId: string) => void;
-  hour24Clock: boolean;
-  dateFormatString: string;
-};
-function ResultItem({ roomId, event, onOpen, hour24Clock, dateFormatString }: ResultItemProps) {
-  const mx = useMatrixClient();
-  const useAuthentication = useMediaAuthentication();
-  const room = mx.getRoom(roomId);
-
-  const relation = event.content['m.relates_to'] as
-    | { rel_type?: string; event_id?: string }
-    | undefined;
-  const mainEventId =
-    relation?.rel_type === RelationType.Replace
-      ? relation?.event_id ?? event.event_id
-      : event.event_id;
-
-  if (!room) return null;
-
-  const senderName =
-    getMemberDisplayName(room, event.sender) ??
-    getMxIdLocalPart(event.sender) ??
-    event.sender;
-  const senderAvatarMxc = getMemberAvatarMxc(room, event.sender);
-  const senderAvatarUrl = senderAvatarMxc
-    ? mxcUrlToHttp(mx, senderAvatarMxc, useAuthentication, 48, 48, 'crop') ?? undefined
-    : undefined;
-  const body = getMessageBody(event);
-
-  return (
-    <MenuItem
-      style={{ padding: `${config.space.S200} ${config.space.S300}` }}
-      variant="Background"
-      radii="300"
-      onClick={() => onOpen(roomId, mainEventId ?? event.event_id)}
-      before={
-        <Avatar size="200">
-          <UserAvatar
-            userId={event.sender}
-            src={senderAvatarUrl}
-            alt={senderName}
-            renderFallback={() => <Icon size="50" src={Icons.User} filled />}
-          />
-        </Avatar>
-      }
-    >
-      <Box direction="Column" gap="100" grow="Yes">
-        <Box alignItems="Baseline" gap="200">
-          <Text size="T200" truncate>
-            {senderName}
-          </Text>
-          <Text size="T200" priority="400" truncate>
-            {room.name}
-          </Text>
-          <Time compact ts={event.origin_server_ts} hour24Clock={hour24Clock} dateFormatString={dateFormatString} />
-        </Box>
-        <Text size="T200" priority="300" className={LineClamp2}>
-          {body}
-        </Text>
-      </Box>
-    </MenuItem>
-  );
-}
 
 type SearchResultsProps = {
   term: string;
@@ -143,8 +48,13 @@ type SearchResultsProps = {
   onOpen: (roomId: string, eventId: string) => void;
 };
 function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
+  const mx = useMatrixClient();
+  const mDirects = useAtomValue(mDirectAtom);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollTopAnchorRef = useRef<HTMLDivElement>(null);
+  const [mediaAutoLoad] = useSetting(settingsAtom, 'mediaAutoLoad');
+  const [urlPreview] = useSetting(settingsAtom, 'urlPreview');
+  const [legacyUsernameColor] = useSetting(settingsAtom, 'legacyUsernameColor');
   const [hour24Clock] = useSetting(settingsAtom, 'hour24Clock');
   const [dateFormatString] = useSetting(settingsAtom, 'dateFormatString');
 
@@ -159,34 +69,53 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
     getNextPageParam: (lastPage) => lastPage.nextToken,
   });
 
-  const flatItems = useMemo(() => {
-    const groups = data?.pages.flatMap((result) => result.groups) ?? [];
-    return groups.flatMap((group) =>
-      group.items.map((item) => ({ roomId: group.roomId, item }))
-    );
+  const groups = useMemo(
+    () => data?.pages.flatMap((result) => result.groups) ?? [],
+    [data]
+  );
+  const highlights = useMemo(() => {
+    const mixed = data?.pages.flatMap((result) => result.highlights);
+    return Array.from(new Set(mixed));
   }, [data]);
 
   const virtualizer = useVirtualizer({
-    count: flatItems.length,
+    count: groups.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 76,
-    overscan: 4,
+    estimateSize: () => 200,
+    overscan: 1,
   });
 
   const vItems = virtualizer.getVirtualItems();
   const lastVItem = vItems[vItems.length - 1];
   const lastVItemIndex = lastVItem?.index;
-  const lastItemIndex = flatItems.length - 1;
+  const lastGroupIndex = groups.length - 1;
   useEffect(() => {
-    if (lastItemIndex > -1 && lastVItemIndex === lastItemIndex && !isFetchingNextPage && hasNextPage) {
+    if (
+      lastGroupIndex > -1 &&
+      lastVItemIndex === lastGroupIndex &&
+      !isFetchingNextPage &&
+      hasNextPage
+    ) {
       fetchNextPage();
     }
-  }, [lastVItemIndex, lastItemIndex, fetchNextPage, isFetchingNextPage, hasNextPage]);
+  }, [lastVItemIndex, lastGroupIndex, fetchNextPage, isFetchingNextPage, hasNextPage]);
+
+  const totalResults = useMemo(
+    () => groups.reduce((sum, g) => sum + g.items.length, 0),
+    [groups]
+  );
 
   return (
-    <Box className={css.RoomSearchContentBase} grow="Yes">
+    <Box className={css.RoomSearchContentBase} grow="Yes" direction="Column">
+      <Box className={css.SearchResultsHeader}>
+        <Text size="T200" priority="300">
+          {status === 'success' || status === 'error'
+            ? `${totalResults} ${totalResults === 1 ? 'Result' : 'Results'}`
+            : 'Searching...'}
+        </Text>
+      </Box>
       <Scroll ref={scrollRef} variant="Background" size="300" visibility="Hover" hideTrack>
-        <Box direction="Column" gap="200" style={{ padding: `${config.space.S200} 0` }}>
+        <Box direction="Column" gap="300" style={{ padding: `${config.space.S200} 0` }}>
           <Box ref={scrollTopAnchorRef} />
           <ScrollTopContainer scrollRef={scrollRef} anchorRef={scrollTopAnchorRef}>
             <IconButton
@@ -207,13 +136,13 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
             </Box>
           )}
 
-          {status === 'success' && flatItems.length === 0 && (
+          {status === 'success' && groups.length === 0 && (
             <Text style={{ padding: config.space.S300 }} align="Center" priority="300">
               {`No results found for "${term}"`}
             </Text>
           )}
 
-          <Box direction="Column" gap="100">
+          <Box direction="Column" gap="400">
             <div
               style={{
                 position: 'relative',
@@ -221,17 +150,26 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
               }}
             >
               {vItems.map((vItem) => {
-                const { roomId, item } = flatItems[vItem.index];
+                const group = groups[vItem.index];
+                if (!group) return null;
+                const groupRoom = mx.getRoom(group.roomId);
+                if (!groupRoom) return null;
+
                 return (
                   <VirtualTile
                     virtualItem={vItem}
-                    key={`${roomId}-${item.event.event_id}`}
+                    style={{ paddingBottom: config.space.S400 }}
+                    key={group.roomId}
                     ref={virtualizer.measureElement}
                   >
-                    <ResultItem
-                      roomId={roomId}
-                      event={item.event}
+                    <SearchResultGroup
+                      room={groupRoom}
+                      highlights={highlights}
+                      items={group.items}
+                      mediaAutoLoad={mediaAutoLoad}
+                      urlPreview={urlPreview}
                       onOpen={onOpen}
+                      legacyUsernameColor={legacyUsernameColor || mDirects.has(groupRoom.roomId)}
                       hour24Clock={hour24Clock}
                       dateFormatString={dateFormatString}
                     />
@@ -308,41 +246,43 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
 
   return (
     <Box
-      className={classNames(css.RoomSearchDrawer, ContainerColor({ variant: 'Background' }))}
+      className={classNames(
+        css.RoomSearchDrawer,
+        ContainerColor({ variant: 'Background' }),
+        searchTerm && css.RoomSearchDrawerWide
+      )}
       shrink="No"
       direction="Column"
     >
       <Header className={css.RoomSearchDrawerHeader} variant="Background" size="600">
-        <Box as="form" onSubmit={handleSubmit} grow="Yes" alignItems="Center" gap="200">
-          <Box grow="Yes" direction="Column">
-            <Input
-              ref={searchInputRef}
-              name="searchInput"
-              style={{ paddingRight: config.space.S200 }}
-              placeholder="Search messages"
-              variant="Surface"
-              size="400"
-              radii="400"
-              autoComplete="off"
-              before={<Icon size="50" src={Icons.Search} />}
-              after={
-                searchTerm ? (
-                  <Chip
-                    variant="Surface"
-                    size="400"
-                    radii="Pill"
-                    outlined
-                    aria-pressed
-                    type="button"
-                    onClick={handleClear}
-                    after={<Icon size="50" src={Icons.Cross} />}
-                  >
-                    <Text size="B300">Clear</Text>
-                  </Chip>
-                ) : null
-              }
-            />
-          </Box>
+        <Box as="form" className={css.SearchForm} onSubmit={handleSubmit} grow="Yes" alignItems="Center" gap="200">
+          <Input
+            ref={searchInputRef}
+            name="searchInput"
+            style={{ flexGrow: 1, paddingRight: config.space.S200 }}
+            placeholder="Search messages"
+            variant="Surface"
+            size="400"
+            radii="400"
+            autoComplete="off"
+            before={<Icon size="50" src={Icons.Search} />}
+            after={
+              searchTerm ? (
+                <Chip
+                  variant="Surface"
+                  size="400"
+                  radii="Pill"
+                  outlined
+                  aria-pressed
+                  type="button"
+                  onClick={handleClear}
+                  after={<Icon size="50" src={Icons.Cross} />}
+                >
+                  <Text size="B300">Clear</Text>
+                </Chip>
+              ) : null
+            }
+          />
           <TooltipProvider
             position="Bottom"
             align="End"

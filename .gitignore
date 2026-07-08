@@ -5,4 +5,6 @@ devAssets
 
 .DS_Store
 .idea
-.playwright-cli
+.playwright-cliroom-view.png
+.playwright-cli/
+room-view.png

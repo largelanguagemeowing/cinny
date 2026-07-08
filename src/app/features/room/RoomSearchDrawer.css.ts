@@ -1,8 +1,13 @@
-import { style } from '@vanilla-extract/css';
+import { style, globalStyle } from '@vanilla-extract/css';
 import { config, toRem } from 'folds';
 
 export const RoomSearchDrawer = style({
   width: toRem(266),
+  transition: 'width 200ms ease',
+});
+
+export const RoomSearchDrawerWide = style({
+  width: toRem(450),
 });
 
 export const RoomSearchDrawerHeader = style({
@@ -11,11 +16,23 @@ export const RoomSearchDrawerHeader = style({
   borderBottomWidth: config.borderWidth.B300,
 });
 
+export const SearchForm = style({});
+
+globalStyle(`${SearchForm} input`, {
+  flexGrow: 1,
+  flexBasis: 0,
+  minWidth: 0,
+});
+
+export const SearchResultsHeader = style({
+  flexShrink: 0,
+  alignItems: 'Center',
+  justifyContent: 'SpaceBetween',
+  padding: `${config.space.S200} ${config.space.S300}`,
+  borderBottomWidth: config.borderWidth.B300,
+});
+
 export const RoomSearchContentBase = style({
   position: 'relative',
   overflow: 'hidden',
-});
-
-export const ResultItemBase = style({
-  padding: `0 ${config.space.S200}`,
 });
