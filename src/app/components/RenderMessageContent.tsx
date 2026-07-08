@@ -137,7 +137,6 @@ export function RenderMessageContent({
         <OoyeGifContent
           title={ooyeGif.title}
           videoUrl={ooyeGif.videoUrl}
-          pageUrl={ooyeGif.pageUrl}
           autoPlay={mediaAutoLoad}
         />
       );
@@ -185,7 +184,6 @@ export function RenderMessageContent({
         <OoyeGifContent
           title={ooyeGif.title}
           videoUrl={ooyeGif.videoUrl}
-          pageUrl={ooyeGif.pageUrl}
           autoPlay={mediaAutoLoad}
         />
       );

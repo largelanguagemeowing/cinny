@@ -26,7 +26,7 @@ import {
   MATRIX_SPOILER_REASON_PROPERTY_NAME,
 } from '../../../types/matrix/common';
 import { FALLBACK_MIMETYPE, getBlobSafeMimeType } from '../../utils/mimeTypes';
-import { parseGeoUri, scaleYDimension } from '../../utils/common';
+import { fitWithin, parseGeoUri, scaleYDimension } from '../../utils/common';
 import { Attachment, AttachmentBox, AttachmentContent, AttachmentHeader } from './attachment';
 import { FileHeader, FileDownloadButton } from './FileHeader';
 
@@ -195,13 +195,22 @@ export function MImage({ content, renderImageContent, outlined }: MImageProps) {
   if (typeof mxcUrl !== 'string') {
     return <BrokenContent />;
   }
-  const height = scaleYDimension(imgInfo?.w || 400, 400, imgInfo?.h || 400);
+
+  const isGif = imgInfo?.mimetype === 'image/gif';
+  // Animated GIFs are laid out in a smaller, aspect-ratio-preserving box so
+  // they don't dominate the timeline (matching Discord-style sizing). The box
+  // matches the image ratio, so nothing gets cropped.
+  const GIF_MAX_W = 400;
+  const GIF_MAX_H = 350;
+  const [gifW, gifH] = fitWithin(imgInfo?.w, imgInfo?.h, GIF_MAX_W, GIF_MAX_H);
+  const height = isGif ? gifH : scaleYDimension(imgInfo?.w || 400, 400, imgInfo?.h || 400);
 
   return (
-    <Attachment outlined={outlined}>
+    <Attachment outlined={outlined} style={isGif ? { width: toRem(gifW) } : undefined}>
       <AttachmentBox
         style={{
           height: toRem(height < 48 ? 48 : height),
+          ...(isGif ? { width: toRem(gifW) } : {}),
         }}
       >
         {renderImageContent({

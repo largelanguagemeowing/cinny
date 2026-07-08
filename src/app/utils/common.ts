@@ -86,6 +86,20 @@ export const scaleYDimension = (x: number, scaledX: number, y: number): number =
   return scaleFactor * y;
 };
 
+// Scales (w, h) to fit within (maxW, maxH) while preserving aspect ratio.
+// Returns the resulting [width, height]. When the source dimensions are
+// missing or zero it falls back to (maxW, maxH).
+export const fitWithin = (
+  w: number | undefined,
+  h: number | undefined,
+  maxW: number,
+  maxH: number
+): [number, number] => {
+  if (!w || !h) return [maxW, maxH];
+  const scale = Math.min(maxW / w, maxH / h);
+  return [w * scale, h * scale];
+};
+
 export const parseGeoUri = (location: string) => {
   try {
     const [, data] = location.split(':');

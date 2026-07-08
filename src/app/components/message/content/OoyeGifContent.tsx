@@ -1,40 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Box,
-  Button,
-  Icon,
-  IconButton,
-  Icons,
-  Spinner,
-  Text,
-  Tooltip,
-  TooltipProvider,
-  toRem,
-} from 'folds';
-import { Attachment, AttachmentBox, AttachmentHeader } from '../attachment';
-import { FileHeader } from '../FileHeader';
+import { Box, Button, Icon, Icons, Spinner, Text, Tooltip, TooltipProvider, toRem } from 'folds';
+import { Attachment, AttachmentBox } from '../attachment';
 import { Video } from '../../media';
 import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import * as css from './style.css';
-import { scaleYDimension } from '../../../utils/common';
+import { fitWithin } from '../../../utils/common';
 
 export type OoyeGifContentProps = {
   title: string;
   videoUrl: string;
-  pageUrl?: string;
   autoPlay?: boolean;
 };
 
-const DEFAULT_HEIGHT = 300;
-const MAX_HEIGHT = 600;
-const SCALED_WIDTH = 400;
+// Match the inline GIF layout: fit within a 400x350 box, preserving aspect
+// ratio, with no file-header chrome so it renders like a regular GIF.
+const GIF_MAX_W = 400;
+const GIF_MAX_H = 350;
+const DEFAULT_W = GIF_MAX_W;
+const DEFAULT_H = 300;
 
-export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayProp }: OoyeGifContentProps) {
+export function OoyeGifContent({ title, videoUrl, autoPlay: autoPlayProp }: OoyeGifContentProps) {
   const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [width, setWidth] = useState(DEFAULT_W);
+  const [height, setHeight] = useState(DEFAULT_H);
   const [showVideo, setShowVideo] = useState(autoPlayProp ?? false);
 
   // Play / pause based on hover in low animation mode
@@ -47,14 +38,13 @@ export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayPro
     }
   }, [lowAnimationMode, hovered, showVideo, loaded]);
 
-  const linkUrl = pageUrl ?? videoUrl;
-
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
     const { videoWidth, videoHeight } = video;
     if (videoWidth && videoHeight) {
-      const scaled = scaleYDimension(videoWidth, SCALED_WIDTH, videoHeight);
-      setHeight(Math.min(Math.max(scaled, 48), MAX_HEIGHT));
+      const [w, h] = fitWithin(videoWidth, videoHeight, GIF_MAX_W, GIF_MAX_H);
+      setWidth(Math.max(w, 48));
+      setHeight(Math.max(h, 48));
     }
     setLoaded(true);
   };
@@ -71,27 +61,8 @@ export function OoyeGifContent({ title, videoUrl, pageUrl, autoPlay: autoPlayPro
   };
 
   return (
-    <Attachment>
-      <AttachmentHeader>
-        <FileHeader
-          body={title}
-          mimeType="video/mp4"
-          after={
-            <IconButton
-              as="a"
-              href={linkUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              size="300"
-              radii="300"
-              variant="SurfaceVariant"
-            >
-              <Icon size="100" src={Icons.External} />
-            </IconButton>
-          }
-        />
-      </AttachmentHeader>
-      <AttachmentBox style={{ height: toRem(height) }}>
+    <Attachment style={{ width: toRem(width) }}>
+      <AttachmentBox style={{ width: toRem(width), height: toRem(height) }}>
         <Box className={css.RelativeBase} {...hoverProps}>
           {showVideo && !error && (
             <Box className={css.AbsoluteContainer}>
