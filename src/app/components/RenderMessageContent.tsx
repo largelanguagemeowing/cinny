@@ -238,6 +238,7 @@ export function RenderMessageContent({
               body={body}
               info={info}
               {...props}
+              autoPlay={false}
               renderThumbnail={
                 mediaAutoLoad
                   ? () => (
