@@ -226,3 +226,93 @@ export const GifTileImg = style([
 export const GifStatus = style({
   padding: `${config.space.S500} ${config.space.S400}`,
 });
+
+/**
+ * GIF Categories
+ */
+
+export const GifCategories = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: config.space.S100,
+  padding: `0 ${config.space.S300} ${config.space.S200}`,
+  flexShrink: 0,
+  overflowX: 'auto',
+  scrollbarWidth: 'none',
+  '::-webkit-scrollbar': {
+    display: 'none',
+  },
+});
+
+export const GifCategoryTab = style([
+  DefaultReset,
+  FocusOutline,
+  {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: config.space.S100,
+    padding: `${config.space.S100} ${config.space.S200}`,
+    borderRadius: config.radii.Pill,
+    border: `${config.borderWidth.B300} solid ${color.Surface.ContainerLine}`,
+    backgroundColor: color.SurfaceVariant.Container,
+    color: color.SurfaceVariant.OnContainer,
+    cursor: 'pointer',
+    fontSize: toRem(13),
+    whiteSpace: 'nowrap',
+
+    ':hover': {
+      backgroundColor: color.Surface.ContainerHover,
+    },
+  },
+]);
+
+export const GifCategoryTabActive = style({
+  backgroundColor: color.Primary.Container,
+  color: color.Primary.OnContainer,
+  borderColor: color.Primary.ContainerLine,
+});
+
+/**
+ * GIF Favorite button
+ */
+
+export const GifFavBtn = style([
+  DefaultReset,
+  FocusOutline,
+  {
+    position: 'absolute',
+    top: config.space.S100,
+    right: config.space.S100,
+    zIndex: 2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: toRem(24),
+    height: toRem(24),
+    padding: 0,
+    border: 'none',
+    borderRadius: config.radii.Pill,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    color: color.Secondary.OnContainer,
+    cursor: 'pointer',
+    opacity: 0,
+    transition: 'opacity 150ms ease',
+
+    selectors: {
+      '&:hover': {
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      },
+    },
+  },
+]);
+
+export const GifFavBtnVisible = style({
+  opacity: 1,
+});
+
+export const GifFavBtnActive = style({
+  opacity: 1,
+  color: color.Primary.OnContainer,
+  backgroundColor: 'rgba(0, 0, 0, 0.55)',
+});
