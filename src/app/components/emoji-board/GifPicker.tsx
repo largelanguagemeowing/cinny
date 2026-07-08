@@ -22,7 +22,7 @@ type GifPickerProps = {
   requestClose: () => void;
 };
 
-type Category = 'favourites' | 'cat' | 'trending';
+type Category = 'favourites' | 'trending';
 
 type GifTileProps = {
   gif: KlipyGif;
@@ -96,7 +96,6 @@ function GifStatus({ children }: { children: React.ReactNode }) {
 
 const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'favourites', label: 'Favourites' },
-  { id: 'cat', label: 'Cat' },
   { id: 'trending', label: 'Trending' },
 ];
 
@@ -139,12 +138,10 @@ export function GifPicker({ onGifSelect, requestClose }: GifPickerProps) {
       setSearchTerm('');
       if (cat === 'trending') {
         resetSearch();
-      } else if (cat === 'cat') {
-        search('cat');
       }
       // favourites: no search needed, uses local favorites
     },
-    [search, resetSearch]
+    [resetSearch]
   );
 
   const handleGifClick = useCallback(
