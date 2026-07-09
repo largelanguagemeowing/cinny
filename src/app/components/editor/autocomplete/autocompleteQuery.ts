@@ -41,9 +41,15 @@ export const getAutocompleteQuery = <TPrefix extends string>(
 ): AutocompleteQuery<TPrefix> | undefined => {
   const prefix = getAutocompletePrefix(editor, queryRange, validPrefixes);
   if (!prefix) return undefined;
+  const text = getAutocompleteQueryText(editor, queryRange, prefix);
+  // Emoji autocomplete waits for two characters after the ':' prefix,
+  // so ':d' shows nothing and ':di' opens the emoji menu.
+  if (prefix === (AutocompletePrefix.Emoticon as string) && text.length < 2) {
+    return undefined;
+  }
   return {
     range: queryRange,
     prefix,
-    text: getAutocompleteQueryText(editor, queryRange, prefix),
+    text,
   };
 };
