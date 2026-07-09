@@ -131,10 +131,11 @@ function MemberItem({
     : undefined;
 
   const presence = useUserPresence(member.userId);
-  const presenceBadge =
-    showPresence && presence && presence.lastActiveTs !== 0 ? (
-      <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
-    ) : undefined;
+  const hasPresence = showPresence && presence && presence.lastActiveTs !== 0;
+  const presenceBadge = hasPresence ? (
+    <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
+  ) : undefined;
+  const statusMsg = hasPresence && presence.status ? presence.status : undefined;
 
   return (
     <MenuItem
@@ -164,10 +165,15 @@ function MemberItem({
         )
       }
     >
-      <Box grow="Yes">
+      <Box grow="Yes" direction="Column">
         <Text size="T400" truncate>
           {name}
         </Text>
+        {statusMsg && (
+          <Text size="T200" priority="300" truncate title={statusMsg}>
+            {statusMsg}
+          </Text>
+        )}
       </Box>
     </MenuItem>
   );
