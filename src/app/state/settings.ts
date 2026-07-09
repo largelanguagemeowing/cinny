@@ -29,6 +29,7 @@ export interface Settings {
   hideActivity: boolean;
 
   isPeopleDrawer: boolean;
+  showPresenceInMemberList: boolean;
   memberSortFilterIndex: number;
   enterForNewline: boolean;
   messageLayout: MessageLayout;
@@ -66,6 +67,7 @@ const defaultSettings: Settings = {
   hideActivity: false,
 
   isPeopleDrawer: true,
+  showPresenceInMemberList: true,
   memberSortFilterIndex: 0,
   enterForNewline: false,
   messageLayout: 0,

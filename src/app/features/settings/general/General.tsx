@@ -1011,6 +1011,32 @@ function Spaces() {
   );
 }
 
+function Sidebar() {
+  const [showPresenceInMemberList, setShowPresenceInMemberList] = useSetting(
+    settingsAtom,
+    'showPresenceInMemberList'
+  );
+
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Sidebar</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Presence Indicators"
+          description="Show online, busy, and away status badges on member avatars in the members list."
+          after={
+            <Switch
+              variant="Primary"
+              value={showPresenceInMemberList}
+              onChange={setShowPresenceInMemberList}
+            />
+          }
+        />
+      </SequenceCard>
+    </Box>
+  );
+}
+
 type GeneralProps = {
   requestClose: () => void;
 };
@@ -1038,6 +1064,7 @@ export function General({ requestClose }: GeneralProps) {
               <Appearance />
               <DateAndTime />
               <Editor />
+              <Sidebar />
               <Messages />
               <Spaces />
             </Box>

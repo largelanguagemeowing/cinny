@@ -47,6 +47,8 @@ import { settingsAtom } from '../../state/settings';
 import { millify } from '../../plugins/millify';
 import { ScrollTopContainer } from '../../components/scroll-top-container';
 import { UserAvatar } from '../../components/user-avatar';
+import { AvatarPresence, PresenceBadge } from '../../components/presence';
+import { useUserPresence } from '../../hooks/useUserPresence';
 import { useRoomTypingMember } from '../../hooks/useRoomTypingMembers';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useMembershipFilter, useMembershipFilterMenu } from '../../hooks/useMemberFilter';
@@ -109,6 +111,7 @@ type MemberItemProps = {
   onClick: MouseEventHandler<HTMLButtonElement>;
   pressed?: boolean;
   typing?: boolean;
+  showPresence?: boolean;
 };
 function MemberItem({
   mx,
@@ -118,6 +121,7 @@ function MemberItem({
   onClick,
   pressed,
   typing,
+  showPresence,
 }: MemberItemProps) {
   const name =
     getMemberDisplayName(room, member.userId) ?? getMxIdLocalPart(member.userId) ?? member.userId;
@@ -125,6 +129,12 @@ function MemberItem({
   const avatarUrl = avatarMxcUrl
     ? mx.mxcUrlToHttp(avatarMxcUrl, 100, 100, 'crop', undefined, false, useAuthentication)
     : undefined;
+
+  const presence = useUserPresence(member.userId);
+  const presenceBadge =
+    showPresence && presence && presence.lastActiveTs !== 0 ? (
+      <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
+    ) : undefined;
 
   return (
     <MenuItem
@@ -135,14 +145,16 @@ function MemberItem({
       radii="400"
       onClick={onClick}
       before={
-        <Avatar size="200">
-          <UserAvatar
-            userId={member.userId}
-            src={avatarUrl ?? undefined}
-            alt={name}
-            renderFallback={() => <Icon size="50" src={Icons.User} filled />}
-          />
-        </Avatar>
+        <AvatarPresence variant="Background" badge={presenceBadge}>
+          <Avatar size="200">
+            <UserAvatar
+              userId={member.userId}
+              src={avatarUrl ?? undefined}
+              alt={name}
+              renderFallback={() => <Icon size="50" src={Icons.User} filled />}
+            />
+          </Avatar>
+        </AvatarPresence>
       }
       after={
         typing && (
@@ -180,6 +192,7 @@ type MembersDrawerProps = {
 export function MembersDrawer({ room, members, hideHeader }: MembersDrawerProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
+  const [showPresenceInMemberList] = useSetting(settingsAtom, 'showPresenceInMemberList');
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollTopAnchorRef = useRef<HTMLDivElement>(null);
@@ -420,6 +433,7 @@ export function MembersDrawer({ room, members, hideHeader }: MembersDrawerProps)
                         member={tagOrMember}
                         onClick={handleMemberClick}
                         pressed={openProfileUserId === tagOrMember.userId}
+                        showPresence={showPresenceInMemberList}
                         typing={typingMembers.some(
                           (receipt) => receipt.userId === tagOrMember.userId
                         )}
