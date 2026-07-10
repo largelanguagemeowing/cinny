@@ -20,30 +20,6 @@ import { getFallbackSession } from './app/state/sessions';
 
 document.body.classList.add(configClass, varsClass);
 
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  const swUrl =
-    import.meta.env.MODE === 'production'
-      ? `${trimTrailingSlash(import.meta.env.BASE_URL)}/sw.js`
-      : `/dev-sw.js?dev-sw`;
-
-  const sendSessionToSW = () => {
-    const session = getFallbackSession();
-    pushSessionToSW(session?.baseUrl, session?.accessToken);
-  };
-
-  navigator.serviceWorker.register(swUrl).then(sendSessionToSW);
-  navigator.serviceWorker.ready.then(sendSessionToSW);
-
-  navigator.serviceWorker.addEventListener('message', (ev) => {
-    const { type } = ev.data ?? {};
-
-    if (type === 'requestSession') {
-      sendSessionToSW();
-    }
-  });
-}
-
 const mountApp = () => {
   const rootContainer = document.getElementById('root');
 
@@ -56,4 +32,41 @@ const mountApp = () => {
   root.render(<App />);
 };
 
-mountApp();
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  const swUrl =
+    import.meta.env.MODE === 'production'
+      ? `${trimTrailingSlash(import.meta.env.BASE_URL)}/sw.js`
+      : `/dev-sw.js?dev-sw`;
+
+  const sendSessionToSW = () => {
+    const session = getFallbackSession();
+    pushSessionToSW(session?.baseUrl, session?.accessToken);
+  };
+
+  navigator.serviceWorker.register(swUrl);
+
+  navigator.serviceWorker.addEventListener('message', (ev) => {
+    const { type } = ev.data ?? {};
+
+    if (type === 'requestSession') {
+      sendSessionToSW();
+    }
+  });
+
+  // Wait for the SW to be active and have the session before mounting the
+  // app so that authenticated media requests are intercepted with the
+  // Authorization header from the very first request. On subsequent visits
+  // this resolves instantly; on first visit it adds a brief delay while
+  // the SW installs. A 3s timeout ensures the app still loads if the SW
+  // is slow to activate or fails to register.
+  Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<void>((resolve) => setTimeout(() => resolve(), 3000)),
+  ]).then(() => {
+    sendSessionToSW();
+    mountApp();
+  });
+} else {
+  mountApp();
+}

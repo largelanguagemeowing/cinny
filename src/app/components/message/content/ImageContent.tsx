@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Badge,
   Box,
@@ -90,6 +90,17 @@ export const ImageContent = as<'div', ImageContentProps>(
     const [viewer, setViewer] = useState(false);
     const [blurred, setBlurred] = useState(markedAsSpoiler ?? false);
 
+    // Auto-retry on image load failure (e.g. 401 when the service worker
+    // hasn't received the session yet). Retries up to 3 times with a 1s
+    // delay before falling back to the manual retry button.
+    const [retryCount, setRetryCount] = useState(0);
+    const maxRetries = 3;
+    const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+    useEffect(() => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    }, []);
+
     const [srcState, loadSrc] = useAsyncCallback(
       useCallback(async () => {
         const mediaUrl = mxcUrlToHttp(mx, url, useAuthentication);
@@ -109,11 +120,19 @@ export const ImageContent = as<'div', ImageContentProps>(
     };
     const handleError = () => {
       setLoad(false);
-      setError(true);
+      if (retryCount < maxRetries) {
+        retryTimerRef.current = setTimeout(() => {
+          setRetryCount((c) => c + 1);
+          loadSrc();
+        }, 1000);
+      } else {
+        setError(true);
+      }
     };
 
     const handleRetry = () => {
       setError(false);
+      setRetryCount(0);
       loadSrc();
     };
 

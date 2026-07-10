@@ -41,6 +41,11 @@ export const initClient = async (session: Session): Promise<MatrixClient> => {
 };
 
 export const startClient = async (mx: MatrixClient) => {
+  // Push the session to the service worker before syncing so that
+  // authenticated media requests have the Authorization header from the
+  // very first request. This covers the login -> navigate flow where no
+  // page reload occurs and the SW may not have the session yet.
+  pushSessionToSW(mx.baseUrl, mx.getAccessToken());
   await mx.startClient({
     lazyLoadMembers: true,
   });
