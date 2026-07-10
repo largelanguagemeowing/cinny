@@ -197,20 +197,20 @@ export function MImage({ content, renderImageContent, outlined }: MImageProps) {
   }
 
   const isGif = imgInfo?.mimetype === 'image/gif';
-  // Animated GIFs are laid out in a smaller, aspect-ratio-preserving box so
-  // they don't dominate the timeline (matching Discord-style sizing). The box
-  // matches the image ratio, so nothing gets cropped.
-  const GIF_MAX_W = 400;
-  const GIF_MAX_H = 350;
-  const [gifW, gifH] = fitWithin(imgInfo?.w, imgInfo?.h, GIF_MAX_W, GIF_MAX_H);
-  const height = isGif ? gifH : scaleYDimension(imgInfo?.w || 400, 400, imgInfo?.h || 400);
+  // Scale every image to fit within a max box while preserving aspect ratio.
+  // Setting both width and height on the container (matching the image ratio)
+  // means object-fit never has to crop. GIFs get a shorter max height so they
+  // don't dominate the timeline.
+  const MAX_W = 400;
+  const MAX_H = isGif ? 350 : 600;
+  const [width, height] = fitWithin(imgInfo?.w, imgInfo?.h, MAX_W, MAX_H);
 
   return (
-    <Attachment outlined={outlined} style={isGif ? { width: toRem(gifW) } : undefined}>
+    <Attachment outlined={outlined} style={{ width: toRem(width) }}>
       <AttachmentBox
         style={{
+          width: toRem(width),
           height: toRem(height < 48 ? 48 : height),
-          ...(isGif ? { width: toRem(gifW) } : {}),
         }}
       >
         {renderImageContent({
