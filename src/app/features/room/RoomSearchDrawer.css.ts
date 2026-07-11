@@ -1,4 +1,4 @@
-import { style, globalStyle } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { config, toRem } from 'folds';
 
 export const RoomSearchDrawer = style({
@@ -14,14 +14,6 @@ export const RoomSearchDrawerHeader = style({
   flexShrink: 0,
   padding: `${config.space.S200} ${config.space.S300}`,
   borderBottomWidth: config.borderWidth.B300,
-});
-
-export const SearchForm = style({});
-
-globalStyle(`${SearchForm} input`, {
-  flexGrow: 1,
-  flexBasis: 0,
-  minWidth: 0,
 });
 
 export const SearchResultsHeader = style({

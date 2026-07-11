@@ -418,9 +418,9 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
   const [peopleDrawer, setPeopleDrawer] = useSetting(settingsAtom, 'isPeopleDrawer');
 
   const handleSearchClick = () => {
-    // On desktop the message search box lives in the member drawer, so opening
-    // the drawer reveals it. On mobile (no drawer) we navigate to the full
-    // search page instead.
+    // On desktop the message search box lives in the top bar and is shown
+    // when the member drawer is open. On mobile (no drawer) we navigate to
+    // the full search page instead.
     if (screenSize === ScreenSize.Desktop) {
       setPeopleDrawer(true);
       return;

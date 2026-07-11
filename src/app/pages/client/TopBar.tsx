@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { FormEventHandler, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Chip,
   Header,
   Icon,
   IconButton,
   Icons,
+  Input,
   Text,
   Tooltip,
   TooltipProvider,
   config,
   toRem,
 } from 'folds';
-import { useAtomValue } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import { allInvitesAtom } from '../../state/room-list/inviteList';
 import {
   getInboxInvitesPath,
@@ -25,6 +27,8 @@ import { UnreadBadge } from '../../components/unread-badge';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 import { useNavToActivePathAtom } from '../../state/hooks/navToActivePath';
 import { ContainerColor } from '../../styles/ContainerColor.css';
+import { roomSearchTermAtom, roomSearchDrawerActiveAtom } from '../../state/roomSearch';
+import * as css from './TopBar.css';
 
 function InboxButton() {
   const screenSize = useScreenSizeContext();
@@ -94,7 +98,68 @@ function InboxButton() {
   );
 }
 
+function RoomSearchBar() {
+  const [searchTerm, setSearchTerm] = useAtom(roomSearchTermAtom);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = (evt) => {
+    evt.preventDefault();
+    const form = evt.target as HTMLFormElement & { searchInput: HTMLInputElement };
+    const term = form.searchInput.value.trim();
+    if (term) setSearchTerm(term);
+  };
+
+  const handleClear = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.value = '';
+      searchInputRef.current.focus();
+    }
+    setSearchTerm(undefined);
+  };
+
+  return (
+    <Box
+      as="form"
+      className={css.SearchForm}
+      onSubmit={handleSubmit}
+      grow="Yes"
+      alignItems="Center"
+      gap="200"
+    >
+      <Input
+        ref={searchInputRef}
+        name="searchInput"
+        style={{ paddingRight: config.space.S200 }}
+        placeholder="Search messages"
+        variant="Surface"
+        size="300"
+        radii="400"
+        autoComplete="off"
+        before={<Icon size="50" src={Icons.Search} />}
+        after={
+          searchTerm ? (
+            <Chip
+              variant="Surface"
+              size="400"
+              radii="Pill"
+              outlined
+              aria-pressed
+              type="button"
+              onClick={handleClear}
+              after={<Icon size="50" src={Icons.Cross} />}
+            >
+              <Text size="B300">Clear</Text>
+            </Chip>
+          ) : null
+        }
+      />
+    </Box>
+  );
+}
+
 export function TopBar() {
+  const drawerActive = useAtomValue(roomSearchDrawerActiveAtom);
+
   return (
     <Header
       variant="Background"
@@ -106,6 +171,7 @@ export function TopBar() {
       }}
     >
       <Box alignItems="Center" justifyContent="End" grow="Yes" gap="200">
+        {drawerActive && <RoomSearchBar />}
         <InboxButton />
       </Box>
     </Header>

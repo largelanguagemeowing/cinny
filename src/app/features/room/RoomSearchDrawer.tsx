@@ -1,12 +1,10 @@
-import React, { FormEventHandler, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Box,
-  Chip,
   Header,
   Icon,
   IconButton,
   Icons,
-  Input,
   Scroll,
   Spinner,
   Text,
@@ -17,7 +15,7 @@ import {
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Room, RoomMember } from 'matrix-js-sdk';
-import { useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import classNames from 'classnames';
 
 import * as css from './RoomSearchDrawer.css';
@@ -41,6 +39,7 @@ import { useMessageSearch } from '../message-search/useMessageSearch';
 import { SearchResultGroup } from '../message-search/SearchResultGroup';
 import { VirtualTile } from '../../components/virtualizer';
 import { ScrollTopContainer } from '../../components/scroll-top-container';
+import { roomSearchTermAtom, roomSearchDrawerActiveAtom } from '../../state/roomSearch';
 
 type SearchResultsProps = {
   term: string;
@@ -206,8 +205,16 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
   const { navigateRoom } = useRoomNavigate();
   const setPeopleDrawer = useSetSetting(settingsAtom, 'isPeopleDrawer');
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [searchTerm, setSearchTerm] = useState<string>();
+  const [searchTerm, setSearchTerm] = useAtom(roomSearchTermAtom);
+  const setDrawerActive = useSetAtom(roomSearchDrawerActiveAtom);
+
+  useEffect(() => {
+    setDrawerActive(true);
+    return () => {
+      setDrawerActive(false);
+      setSearchTerm(undefined);
+    };
+  }, [setDrawerActive, setSearchTerm]);
 
   const mDirects = useAtomValue(mDirectAtom);
   const roomToParents = useAtomValue(roomToParentsAtom);
@@ -225,21 +232,6 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
     return [...orphanRooms, ...directs];
   }, [space, spaceChildren, orphanRooms, directs]);
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (evt) => {
-    evt.preventDefault();
-    const form = evt.target as HTMLFormElement & { searchInput: HTMLInputElement };
-    const term = form.searchInput.value.trim();
-    if (term) setSearchTerm(term);
-  };
-
-  const handleClear = () => {
-    if (searchInputRef.current) {
-      searchInputRef.current.value = '';
-      searchInputRef.current.focus();
-    }
-    setSearchTerm(undefined);
-  };
-
   const handleOpen = (roomId: string, eventId: string) => {
     navigateRoom(roomId, eventId);
   };
@@ -255,34 +247,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
       direction="Column"
     >
       <Header className={css.RoomSearchDrawerHeader} variant="Background" size="600">
-        <Box as="form" className={css.SearchForm} onSubmit={handleSubmit} grow="Yes" alignItems="Center" gap="200">
-          <Input
-            ref={searchInputRef}
-            name="searchInput"
-            style={{ flexGrow: 1, paddingRight: config.space.S200 }}
-            placeholder="Search messages"
-            variant="Surface"
-            size="400"
-            radii="400"
-            autoComplete="off"
-            before={<Icon size="50" src={Icons.Search} />}
-            after={
-              searchTerm ? (
-                <Chip
-                  variant="Surface"
-                  size="400"
-                  radii="Pill"
-                  outlined
-                  aria-pressed
-                  type="button"
-                  onClick={handleClear}
-                  after={<Icon size="50" src={Icons.Cross} />}
-                >
-                  <Text size="B300">Clear</Text>
-                </Chip>
-              ) : null
-            }
-          />
+        <Box grow="Yes" alignItems="Center" justifyContent="End">
           <TooltipProvider
             position="Bottom"
             align="End"
@@ -297,7 +262,6 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
               <IconButton
                 ref={triggerRef}
                 variant="Background"
-                type="button"
                 onClick={() => setPeopleDrawer(false)}
                 aria-label="Close member list"
               >
