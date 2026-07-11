@@ -122,7 +122,7 @@ function RoomSearchBar() {
       as="form"
       className={css.SearchForm}
       onSubmit={handleSubmit}
-      grow="Yes"
+      shrink="No"
       alignItems="Center"
       gap="200"
     >
