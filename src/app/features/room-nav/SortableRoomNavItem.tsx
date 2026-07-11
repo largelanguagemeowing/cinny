@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Room } from 'matrix-js-sdk';
 import { RoomNavItem } from './RoomNavItem';
 import { SortableNavItem } from './styles.css';
@@ -31,16 +31,8 @@ export function SortableRoomNavItem({
   parentId,
   onReorder,
 }: SortableRoomNavItemProps) {
-  const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState(false);
-
-  // Disable native dragging on inner <a> so the wrapper div owns the drag.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.querySelectorAll('a').forEach((a) => a.setAttribute('draggable', 'false'));
-  });
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const payload: DragPayload = { roomId: room.roomId, parentId };
@@ -79,7 +71,6 @@ export function SortableRoomNavItem({
 
   return (
     <div
-      ref={ref}
       className={SortableNavItem}
       data-dragging={dragging}
       data-drop-target={dropTarget ? 'before' : undefined}
