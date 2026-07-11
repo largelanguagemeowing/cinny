@@ -25,3 +25,26 @@ export const SortableNavItem = style({
     },
   },
 });
+
+export const NavItemDragHandle = style({
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  bottom: 0,
+  width: '20px',
+  zIndex: 3,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'grab',
+  opacity: 0,
+  transition: `opacity ${config.transition}`,
+  selectors: {
+    [`${SortableNavItem}:hover &`]: {
+      opacity: config.opacity.P400,
+    },
+    '&:active': {
+      cursor: 'ns-resize',
+    },
+  },
+});

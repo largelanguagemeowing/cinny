@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Room } from 'matrix-js-sdk';
+import { Icon, Icons } from 'folds';
 import {
   draggable,
   dropTargetForElements,
@@ -7,7 +8,7 @@ import {
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import { RoomNavItem } from './RoomNavItem';
-import { SortableNavItem } from './styles.css';
+import { NavItemDragHandle, SortableNavItem } from './styles.css';
 import { RoomNotificationMode } from '../../hooks/useRoomsNotificationPreferences';
 
 type SortableRoomNavItemProps = {
@@ -34,18 +35,21 @@ export function SortableRoomNavItem({
   onReorder,
 }: SortableRoomNavItemProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return undefined;
+    const handle = handleRef.current;
+    if (!el || !handle) return undefined;
 
     const payload: DragPayload = { roomId: room.roomId, parentId };
 
     return combine(
       draggable({
         element: el,
+        dragHandle: handle,
         getInitialData: () => payload,
         onDragStart: () => setDragging(true),
         onDrop: () => setDragging(false),
@@ -86,6 +90,9 @@ export function SortableRoomNavItem({
         linkPath={linkPath}
         notificationMode={notificationMode}
       />
+      <div ref={handleRef} className={NavItemDragHandle} aria-label="Drag to reorder">
+        <Icon size="50" src={Icons.VerticalDots} />
+      </div>
     </div>
   );
 }
