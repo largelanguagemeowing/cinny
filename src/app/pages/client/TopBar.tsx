@@ -122,6 +122,7 @@ function RoomSearchBar() {
       as="form"
       className={css.SearchForm}
       onSubmit={handleSubmit}
+      grow="No"
       shrink="No"
       alignItems="Center"
       gap="200"
@@ -129,7 +130,7 @@ function RoomSearchBar() {
       <Input
         ref={searchInputRef}
         name="searchInput"
-        style={{ paddingRight: config.space.S200 }}
+        style={{ flexGrow: 1, paddingRight: config.space.S200 }}
         placeholder="Search messages"
         variant="Surface"
         size="300"
