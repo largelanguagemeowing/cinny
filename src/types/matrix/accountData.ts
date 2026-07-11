@@ -5,6 +5,8 @@ export enum AccountDataEvent {
 
   CinnySpaces = 'in.cinny.spaces',
 
+  KibbyRoomOrder = 'im.kibby.room_order',
+
   ElementRecentEmoji = 'io.element.recent_emoji',
 
   PoniesUserEmotes = 'im.ponies.user_emotes',
@@ -47,4 +49,24 @@ export type SecretContent = {
 
 export type SecretAccountData = {
   encrypted: Record<string, SecretContent>;
+};
+
+/**
+ * How rooms within a space are ordered in the per-user sidebar nav.
+ * - `default`: canonical order from the `m.space.child` state events
+ * - `alpha`: alphabetical (A to Z)
+ * - `activity`: most recently active first
+ * - `custom`: user-defined manual order, persisted in `KibbyRoomOrderContent.orders`
+ */
+export type RoomSortMode = 'default' | 'alpha' | 'activity' | 'custom';
+
+/**
+ * Per-user room ordering, synced across devices via account data.
+ * `sortModes` maps a root space roomId to the selected sort mode for that space.
+ * `orders` maps a parent space roomId to the ordered list of child roomIds,
+ * used only while that parent's section is in `custom` sort mode.
+ */
+export type KibbyRoomOrderContent = {
+  sortModes?: Record<string, RoomSortMode>;
+  orders?: Record<string, string[]>;
 };

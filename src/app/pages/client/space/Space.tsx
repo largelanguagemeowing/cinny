@@ -47,13 +47,20 @@ import {
 } from '../../../hooks/router/useSelectedSpace';
 import { useSpace } from '../../../hooks/useSpace';
 import { VirtualTile } from '../../../components/virtualizer';
-import { RoomNavCategoryButton, RoomNavItem } from '../../../features/room-nav';
+import { RoomNavCategoryButton, SortableRoomNavItem } from '../../../features/room-nav';
 import { makeNavCategoryId } from '../../../state/closedNavCategories';
 import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
 import { useCategoryHandler } from '../../../hooks/useCategoryHandler';
 import { useNavToActivePathMapper } from '../../../hooks/useNavToActivePathMapper';
 import { useRoomName } from '../../../hooks/useRoomMeta';
 import { useSpaceJoinedHierarchy } from '../../../hooks/useSpaceHierarchy';
+import {
+  useRoomOrderContent,
+  useReorderRoom,
+  useRoomSortMode,
+  setRoomSortMode,
+} from '../../../hooks/useRoomOrder';
+import { RoomSortMode } from '../../../../types/matrix/accountData';
 import { allRoomsAtom } from '../../../state/room-list/roomList';
 import { PageNav, PageNavContent, PageNavHeader } from '../../../components/page';
 import { usePowerLevels } from '../../../hooks/usePowerLevels';
@@ -98,6 +105,12 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(({ room, requestClo
   const roomToParents = useAtomValue(roomToParentsAtom);
   const powerLevels = usePowerLevels(room);
   const creators = useRoomCreators(room);
+  const sortMode = useRoomSortMode(room.roomId);
+
+  const handleSortChange = (mode: RoomSortMode) => {
+    setRoomSortMode(mx, room.roomId, mode);
+    requestClose();
+  };
 
   const permissions = useRoomPermissions(creators, powerLevels);
   const canInvite = permissions.action('invite', mx.getSafeUserId());
@@ -184,6 +197,74 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(({ room, requestClo
             </MenuItem>
           )}
         </SpaceNotificationModeSwitcher>
+      </Box>
+      <Line variant="Surface" size="300" />
+      <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+        <Text size="L400">Sort by</Text>
+        <MenuItem
+          onClick={() => handleSortChange('default')}
+          size="300"
+          after={
+            <Icon
+              size="100"
+              src={Icons.Check}
+              style={{ visibility: sortMode === 'default' ? 'visible' : 'hidden' }}
+            />
+          }
+          radii="300"
+        >
+          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+            Default
+          </Text>
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleSortChange('alpha')}
+          size="300"
+          after={
+            <Icon
+              size="100"
+              src={Icons.Check}
+              style={{ visibility: sortMode === 'alpha' ? 'visible' : 'hidden' }}
+            />
+          }
+          radii="300"
+        >
+          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+            A to Z
+          </Text>
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleSortChange('activity')}
+          size="300"
+          after={
+            <Icon
+              size="100"
+              src={Icons.Check}
+              style={{ visibility: sortMode === 'activity' ? 'visible' : 'hidden' }}
+            />
+          }
+          radii="300"
+        >
+          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+            Activity
+          </Text>
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleSortChange('custom')}
+          size="300"
+          after={
+            <Icon
+              size="100"
+              src={Icons.Check}
+              style={{ visibility: sortMode === 'custom' ? 'visible' : 'hidden' }}
+            />
+          }
+          radii="300"
+        >
+          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+            Custom
+          </Text>
+        </MenuItem>
       </Box>
       <Line variant="Surface" size="300" />
       <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
@@ -428,6 +509,12 @@ export function Space() {
     [mx, allJoinedRooms]
   );
 
+  const roomOrderContent = useRoomOrderContent();
+  const sortMode = roomOrderContent.sortModes?.[space.roomId] ?? 'default';
+  const { orders } = roomOrderContent;
+  const customOrders = useMemo(() => orders ?? {}, [orders]);
+  const reorderRoom = useReorderRoom(space.roomId);
+
   const hierarchy = useSpaceJoinedHierarchy(
     space.roomId,
     getRoom,
@@ -445,7 +532,23 @@ export function Space() {
     useCallback(
       (sId) => closedCategories.has(makeNavCategoryId(space.roomId, sId)),
       [closedCategories, space.roomId]
-    )
+    ),
+    sortMode,
+    customOrders
+  );
+
+  const handleReorder = useCallback(
+    (parentId: string, fromRoomId: string, toRoomId: string) => {
+      const sectionRooms = hierarchy
+        .filter((i) => !('space' in i) && i.parentId === parentId)
+        .map((i) => i.roomId);
+      const filtered = sectionRooms.filter((rid) => rid !== fromRoomId);
+      const toIndex = filtered.indexOf(toRoomId);
+      if (toIndex === -1) return;
+      filtered.splice(toIndex, 0, fromRoomId);
+      reorderRoom(parentId, filtered);
+    },
+    [hierarchy, reorderRoom]
   );
 
   const virtualizer = useVirtualizer({
@@ -544,14 +647,25 @@ export function Space() {
 
               return (
                 <VirtualTile virtualItem={vItem} key={vItem.index} ref={virtualizer.measureElement}>
-                  <RoomNavItem
-                    room={room}
-                    selected={selectedRoomId === roomId}
-                    showAvatar={mDirects.has(roomId)}
-                    direct={mDirects.has(roomId)}
-                    linkPath={getToLink(roomId)}
-                    notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
-                  />
+                  {(() => {
+                    const item = hierarchy[vItem.index];
+                    const parentId = item && !('space' in item) ? item.parentId : space.roomId;
+                    return (
+                      <SortableRoomNavItem
+                        room={room}
+                        selected={selectedRoomId === roomId}
+                        showAvatar={mDirects.has(roomId)}
+                        direct={mDirects.has(roomId)}
+                        linkPath={getToLink(roomId)}
+                        notificationMode={getRoomNotificationMode(
+                          notificationPreferences,
+                          room.roomId
+                        )}
+                        parentId={parentId}
+                        onReorder={handleReorder}
+                      />
+                    );
+                  })()}
                 </VirtualTile>
               );
             })}
