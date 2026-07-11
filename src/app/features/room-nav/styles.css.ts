@@ -10,6 +10,7 @@ export const CategoryButtonIcon = style({
 
 export const SortableNavItem = style({
   position: 'relative',
+  cursor: 'grab',
   selectors: {
     '&[data-dragging=true]': {
       opacity: config.opacity.P500,
@@ -22,29 +23,6 @@ export const SortableNavItem = style({
       right: 0,
       zIndex: 2,
       borderTop: `${config.borderWidth.B300} solid ${color.Success.Main}`,
-    },
-  },
-});
-
-export const NavItemDragHandle = style({
-  position: 'absolute',
-  left: 0,
-  top: 0,
-  bottom: 0,
-  width: '20px',
-  zIndex: 3,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'grab',
-  opacity: 0,
-  transition: `opacity ${config.transition}`,
-  selectors: {
-    [`${SortableNavItem}:hover &`]: {
-      opacity: config.opacity.P400,
-    },
-    '&:active': {
-      cursor: 'ns-resize',
     },
   },
 });

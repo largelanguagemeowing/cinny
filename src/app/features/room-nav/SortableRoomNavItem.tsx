@@ -1,14 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Room } from 'matrix-js-sdk';
-import { Icon, Icons } from 'folds';
-import {
-  draggable,
-  dropTargetForElements,
-} from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
-import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import { RoomNavItem } from './RoomNavItem';
-import { NavItemDragHandle, SortableNavItem } from './styles.css';
+import { SortableNavItem } from './styles.css';
 import { RoomNotificationMode } from '../../hooks/useRoomsNotificationPreferences';
 
 type SortableRoomNavItemProps = {
@@ -24,6 +17,10 @@ type SortableRoomNavItemProps = {
 
 type DragPayload = { roomId: string; parentId: string };
 
+// Module-level slot for the active drag, readable during dragover (dataTransfer
+// is not readable in dragover in all browsers).
+let activeDrag: DragPayload | null = null;
+
 export function SortableRoomNavItem({
   room,
   selected,
@@ -35,44 +32,50 @@ export function SortableRoomNavItem({
   onReorder,
 }: SortableRoomNavItemProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState(false);
 
+  // Disable native dragging on inner <a> so the wrapper div owns the drag.
   useEffect(() => {
     const el = ref.current;
-    const handle = handleRef.current;
-    if (!el || !handle) return undefined;
+    if (!el) return;
+    el.querySelectorAll('a').forEach((a) => a.setAttribute('draggable', 'false'));
+  });
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const payload: DragPayload = { roomId: room.roomId, parentId };
+    activeDrag = payload;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', room.roomId);
+    setDragging(true);
+  };
 
-    return combine(
-      draggable({
-        element: el,
-        dragHandle: handle,
-        getInitialData: () => payload,
-        onDragStart: () => setDragging(true),
-        onDrop: () => setDragging(false),
-      }),
-      dropTargetForElements({
-        element: el,
-        canDrop: ({ source }) =>
-          (source.data as DragPayload).parentId === parentId &&
-          (source.data as DragPayload).roomId !== room.roomId,
-        getData: () => payload,
-        onDragEnter: () => setDropTarget(true),
-        onDragLeave: () => setDropTarget(false),
-        onDrop: ({ source }) => {
-          setDropTarget(false);
-          const sourcePayload = source.data as DragPayload;
-          if (sourcePayload.parentId === parentId && sourcePayload.roomId !== room.roomId) {
-            onReorder(parentId, sourcePayload.roomId, room.roomId);
-          }
-        },
-      }),
-      autoScrollForElements({ element: el })
-    );
-  }, [room.roomId, parentId, onReorder]);
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!activeDrag) return;
+    if (activeDrag.parentId !== parentId || activeDrag.roomId === room.roomId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(true);
+  };
+
+  const handleDragLeave = () => {
+    setDropTarget(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDropTarget(false);
+    if (activeDrag && activeDrag.parentId === parentId && activeDrag.roomId !== room.roomId) {
+      onReorder(parentId, activeDrag.roomId, room.roomId);
+    }
+    activeDrag = null;
+  };
+
+  const handleDragEnd = () => {
+    setDragging(false);
+    setDropTarget(false);
+    activeDrag = null;
+  };
 
   return (
     <div
@@ -80,7 +83,12 @@ export function SortableRoomNavItem({
       className={SortableNavItem}
       data-dragging={dragging}
       data-drop-target={dropTarget ? 'before' : undefined}
-      onDragStart={(e) => e.preventDefault()}
+      draggable
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onDragEnd={handleDragEnd}
     >
       <RoomNavItem
         room={room}
@@ -90,9 +98,6 @@ export function SortableRoomNavItem({
         linkPath={linkPath}
         notificationMode={notificationMode}
       />
-      <div ref={handleRef} className={NavItemDragHandle} aria-label="Drag to reorder">
-        <Icon size="50" src={Icons.VerticalDots} />
-      </div>
     </div>
   );
 }
