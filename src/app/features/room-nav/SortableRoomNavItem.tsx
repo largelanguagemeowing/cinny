@@ -76,6 +76,7 @@ export function SortableRoomNavItem({
       className={SortableNavItem}
       data-dragging={dragging}
       data-drop-target={dropTarget ? 'before' : undefined}
+      onDragStart={(e) => e.preventDefault()}
     >
       <RoomNavItem
         room={room}
