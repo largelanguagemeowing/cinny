@@ -401,6 +401,23 @@ const useLiveTimelineRefresh = (room: Room, onRefresh: () => void) => {
   }, [room, onRefresh]);
 };
 
+const useLocalEchoUpdated = (room: Room, onUpdate: () => void) => {
+  useEffect(() => {
+    const handleLocalEchoUpdated: RoomEventHandlerMap[RoomEvent.LocalEchoUpdated] = (
+      mEvent,
+      eventRoom
+    ) => {
+      if (eventRoom?.roomId !== room.roomId) return;
+      onUpdate();
+    };
+
+    room.on(RoomEvent.LocalEchoUpdated, handleLocalEchoUpdated);
+    return () => {
+      room.removeListener(RoomEvent.LocalEchoUpdated, handleLocalEchoUpdated);
+    };
+  }, [room, onUpdate]);
+};
+
 const getInitialTimeline = (room: Room) => {
   const linkedTimelines = getLinkedTimelines(getLiveTimeline(room));
   const evLength = getTimelinesEventsCount(linkedTimelines);
@@ -681,6 +698,15 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         setTimeline(getInitialTimeline(room));
       }
     }, [room, liveTimelineLinked])
+  );
+
+  // Re-render when a local echo's send status changes (e.g. SENDING -> NOT_SENT)
+  // so that the Message component can show the updated status indicator.
+  useLocalEchoUpdated(
+    room,
+    useCallback(() => {
+      setTimeline((ct) => ({ ...ct }));
+    }, [])
   );
 
   // Stay at bottom when room editor resize

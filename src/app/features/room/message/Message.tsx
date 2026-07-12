@@ -33,6 +33,7 @@ import React, {
 import FocusTrap from 'focus-trap-react';
 import { useHover, useFocusWithin } from 'react-aria';
 import { MatrixEvent, Room } from 'matrix-js-sdk';
+import { EventStatus } from 'matrix-js-sdk/lib/models/event-status';
 import { Relations } from 'matrix-js-sdk/lib/models/relations';
 import classNames from 'classnames';
 import { RoomPinnedEventsEventContent } from 'matrix-js-sdk/lib/types';
@@ -741,6 +742,20 @@ export const Message = as<'div', MessageProps>(
 
     const usernameColor = legacyUsernameColor ? colorMXID(senderId) : tagColor;
 
+    const eventStatus = mEvent.status;
+    const isSending =
+      eventStatus === EventStatus.Sending ||
+      eventStatus === EventStatus.Queued ||
+      eventStatus === EventStatus.Encrypting;
+    const isFailed = eventStatus === EventStatus.NotSent;
+
+    const [retryState, resendMessage] = useAsyncCallback(
+      useCallback(() => mx.resendEvent(mEvent, room), [mx, mEvent, room])
+    );
+    const handleRemoveFailed = useCallback(() => {
+      mx.cancelPendingEvent(mEvent);
+    }, [mx, mEvent]);
+
     const headerJSX = !collapse && (
       <Box
         gap="300"
@@ -784,6 +799,9 @@ export const Message = as<'div', MessageProps>(
             hour24Clock={hour24Clock}
             dateFormatString={dateFormatString}
           />
+          {isSending && (
+            <Icon className={css.MessageStatusSending} size="100" src={Icons.Clock} />
+          )}
         </Box>
       </Box>
     );
@@ -832,6 +850,42 @@ export const Message = as<'div', MessageProps>(
           children
         )}
         {reactions}
+        {isFailed && (
+          <Box className={css.MessageFailedBar} direction="Row" alignItems="Center" gap="200">
+            <Icon size="100" src={Icons.Warning} style={{ color: color.Critical.Main }} />
+            <Text size="T300" style={{ color: color.Critical.Main }}>
+              {retryState.status === AsyncStatus.Error
+                ? 'Failed to send. Retry failed.'
+                : 'Failed to send'}
+            </Text>
+            <Box shrink="No" grow="Yes" justifyContent="End" gap="100" alignItems="Center">
+              {retryState.status === AsyncStatus.Loading ? (
+                <Spinner size="100" variant="Critical" />
+              ) : (
+                <Button
+                  size="300"
+                  variant="Critical"
+                  fill="Soft"
+                  radii="300"
+                  onClick={() => resendMessage()}
+                  before={<Icon size="100" src={Icons.Reload} />}
+                >
+                  <Text size="B300">Retry</Text>
+                </Button>
+              )}
+              <IconButton
+                variant="Critical"
+                fill="Soft"
+                size="300"
+                radii="300"
+                onClick={handleRemoveFailed}
+                aria-label="Remove failed message"
+              >
+                <Icon size="100" src={Icons.Cross} />
+              </IconButton>
+            </Box>
+          </Box>
+        )}
       </Box>
     );
 

@@ -55,3 +55,15 @@ export const ReactionsContainer = style({
 export const ReactionsTooltipText = style({
   wordBreak: 'break-word',
 });
+
+export const MessageStatusSending = style({
+  opacity: 0.5,
+});
+
+export const MessageFailedBar = style([
+  DefaultReset,
+  {
+    padding: `${config.space.S100} ${config.space.S200}`,
+    cursor: 'default',
+  },
+]);
