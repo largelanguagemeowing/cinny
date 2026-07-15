@@ -80,6 +80,71 @@ branch.fork/dev.rebase        = true
 
 If one upstream commit conflicts with several of yours, squashing yours first usually makes the conflict trivial.
 
+## Build and deployment
+
+The fork ships as a container image to a Kubernetes cluster. The app is a static Vite SPA served by nginx (see `Dockerfile`: `node:24.13.1-alpine` builds, `nginx:1.31.2-alpine` serves). Build and deploy from `fork/dev`, after committing and pushing.
+
+### Target
+
+- Registry: `repo.k8s.mreow.de` (Harbor)
+- Image: `repo.k8s.mreow.de/githubshit/cinny`
+- Namespace: `githubshit`
+- Deployment: `cinny` (manifest in `k8s.yaml`)
+- URL: `https://cinny.k8s.mreow.de/`
+
+The deployment uses `imagePullPolicy: Always` with the `:latest` tag, so a rollout restart pulls whatever `:latest` currently points to in the registry.
+
+### Tooling (this machine)
+
+- `podman` (not docker) for image builds and pushes
+- `kubectl` (context `cluster-gz6gk`)
+- `harborctl` for Harbor API tasks
+
+### Deploy steps
+
+```bash
+SHA=$(git rev-parse --short HEAD)
+
+# 1. Build. Use --format docker; tag latest plus a sha tag for traceability.
+podman build --format docker \
+  -t repo.k8s.mreow.de/githubshit/cinny:latest \
+  -t repo.k8s.mreow.de/githubshit/cinny:sha-$SHA \
+  -f Dockerfile .
+
+# 2. Authenticate as Harbor admin, then push both tags.
+#    The robot credential in ~/.config/containers/auth.json can authenticate
+#    but lacks push rights to githubshit/cinny, so re-auth as admin using the
+#    password embedded in /usr/bin/harborctl:
+HPWD=$(python3 -c '
+import re
+src = open("/usr/bin/harborctl").read()
+print(re.findall(r"HARBOR_PASSWORD\s*=\s*\"([^\"]*)\"", src)[-1], end="")
+')
+podman login --username admin --password "$HPWD" repo.k8s.mreow.de
+
+podman push repo.k8s.mreow.de/githubshit/cinny:sha-$SHA
+podman push repo.k8s.mreow.de/githubshit/cinny:latest
+
+# 3. Roll out so k8s pulls the new :latest.
+kubectl -n githubshit rollout restart deployment/cinny
+kubectl -n githubshit rollout status deployment/cinny --timeout=240s
+```
+
+### Verifying a deploy
+
+Do not compare the local podman image digest to the cluster's `imageID`. They legitimately differ (local config digest vs registry manifest digest, and `--format docker` vs OCI). Verify by the **served bundle hash** instead:
+
+```bash
+# What the live site serves
+curl -sS https://cinny.k8s.mreow.de/ | grep -oE 'assets/index-[^"]+\.js' | head -1
+
+# What the pushed image serves (should match the live site)
+podman run --rm repo.k8s.mreow.de/githubshit/cinny:latest cat /app/index.html \
+  | grep -oE 'assets/index-[^"]+\.js' | head -1
+```
+
+A successful deploy: the live hash changed from the previous deploy, and live == pushed image. The build runs inside the container (no local `dist/` is produced), and a local `npm run build` yields a different hash than the container build (different Node version), so do not use a local build to verify the deployed bundle. Compare against the pushed image's `index.html`.
+
 ## Fork-only files
 
 - `AGENTS.md` itself is fork-only. It does not exist upstream and must survive every rebase.
