@@ -72,6 +72,7 @@ export function DirectMessageComposer({ userId }: DirectMessageComposerProps) {
             variant="SurfaceVariant"
             size="400"
             radii="300"
+            style={{ width: '100%' }}
             disabled={sending}
           />
         </Box>
