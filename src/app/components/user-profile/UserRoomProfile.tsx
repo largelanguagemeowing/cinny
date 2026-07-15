@@ -25,7 +25,11 @@ import { DirectCreateSearchParams } from '../../pages/paths';
 import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { UserRichPresence } from './UserRichPresence';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { getProfileBanner, getProfilePronouns } from '../../../types/matrix/profile';
+import {
+  getProfileBanner,
+  getProfileBiography,
+  getProfilePronouns,
+} from '../../../types/matrix/profile';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -68,6 +72,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
     .map((pronoun) => pronoun.summary)
     .join(', ');
   const bannerMxc = getProfileBanner(profile.extended);
+  const biography = getProfileBiography(profile.extended);
   const bannerUrl = bannerMxc
     ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 200, 'crop') ?? undefined
     : undefined;
@@ -115,6 +120,11 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
             {userId !== myUserId && <OptionsChip userId={userId} />}
           </Box>
         </Box>
+        {biography && (
+          <Text style={{ whiteSpace: 'pre-wrap' }} priority="300">
+            {biography}
+          </Text>
+        )}
         {richPresence && <UserRichPresence presence={richPresence} />}
         {ignored && <IgnoredUserAlert />}
         {member && membership === Membership.Ban && (

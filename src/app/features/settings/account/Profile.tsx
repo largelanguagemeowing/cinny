@@ -23,6 +23,7 @@ import {
   Header,
   config,
   Spinner,
+  TextArea,
 } from 'folds';
 import FocusTrap from 'focus-trap-react';
 import { SequenceCard } from '../../../components/sequence-card';
@@ -46,8 +47,10 @@ import { useCapabilities } from '../../../hooks/useCapabilities';
 import {
   getProfilePronouns,
   getProfileBanner,
+  getProfileBiography,
   MSC4247_PRONOUNS,
   MSC4427_BANNER,
+  MSC4440_BIOGRAPHY,
   ProfilePronoun,
 } from '../../../../types/matrix/profile';
 
@@ -464,6 +467,72 @@ function ProfilePronouns({ profile }: { profile: UserProfile }) {
   );
 }
 
+function ProfileBiography({ profile }: { profile: UserProfile }) {
+  const mx = useMatrixClient();
+  const currentValue = getProfileBiography(profile.extended) ?? '';
+  const [value, setValue] = useState(currentValue);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setValue(currentValue), [currentValue]);
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      if (value.trim()) {
+        await mx.setExtendedProfileProperty(MSC4440_BIOGRAPHY, {
+          'm.text': [{ body: value.trim() }],
+        });
+      } else {
+        await mx.deleteExtendedProfileProperty(MSC4440_BIOGRAPHY);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SettingTile
+      title={
+        <Text as="span" size="L400">
+          Biography
+        </Text>
+      }
+      description="Public information shown on your profile."
+    >
+      <Box as="form" onSubmit={handleSubmit} direction="Column" gap="200" grow="Yes">
+        <TextArea
+          aria-label="Biography"
+          value={value}
+          onChange={(event) => setValue(event.currentTarget.value)}
+          placeholder="Tell people about yourself"
+          maxLength={1024}
+          rows={4}
+          resize="Vertical"
+          variant="Secondary"
+          radii="300"
+        />
+        <Box justifyContent="End" alignItems="Center" gap="200">
+          <Text size="T200" priority="300">
+            {value.length} / 1024
+          </Text>
+          <Button
+            type="submit"
+            size="300"
+            variant="Success"
+            fill="Solid"
+            radii="300"
+            disabled={saving || value === currentValue}
+          >
+            {saving && <Spinner variant="Success" fill="Solid" size="300" />}
+            <Text size="B300">Save</Text>
+          </Button>
+        </Box>
+      </Box>
+    </SettingTile>
+  );
+}
+
 export function Profile() {
   const mx = useMatrixClient();
   const userId = mx.getUserId()!;
@@ -482,6 +551,7 @@ export function Profile() {
         <ProfileBanner profile={profile} />
         <ProfileDisplayName userId={userId} profile={profile} />
         <ProfilePronouns profile={profile} />
+        <ProfileBiography profile={profile} />
       </SequenceCard>
     </Box>
   );
