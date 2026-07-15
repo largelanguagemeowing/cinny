@@ -45,7 +45,9 @@ import { CompactUploadCardRenderer } from '../../../components/upload-card';
 import { useCapabilities } from '../../../hooks/useCapabilities';
 import {
   getProfilePronouns,
+  getProfileBanner,
   MSC4247_PRONOUNS,
+  MSC4427_BANNER,
   ProfilePronoun,
 } from '../../../../types/matrix/profile';
 
@@ -206,6 +208,92 @@ function ProfileAvatar({ profile, userId }: ProfileProps) {
           </FocusTrap>
         </OverlayCenter>
       </Overlay>
+    </SettingTile>
+  );
+}
+
+function ProfileBanner({ profile }: { profile: UserProfile }) {
+  const mx = useMatrixClient();
+  const useAuthentication = useMediaAuthentication();
+  const bannerMxc = getProfileBanner(profile.extended);
+  const bannerUrl = bannerMxc
+    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 200, 'crop') ?? undefined
+    : undefined;
+  const [imageFile, setImageFile] = useState<File>();
+  const imageFileUrl = useObjectURL(imageFile);
+  const uploadAtom = useMemo(
+    () => (imageFile ? createUploadAtom(imageFile) : undefined),
+    [imageFile]
+  );
+  const pickFile = useFilePicker(setImageFile, false);
+
+  const handleUploaded = useCallback(
+    async (upload: UploadSuccess) => {
+      await mx.setExtendedProfileProperty(MSC4427_BANNER, upload.mxc);
+      setImageFile(undefined);
+    },
+    [mx]
+  );
+
+  const handleRemove = async () => {
+    await mx.deleteExtendedProfileProperty(MSC4427_BANNER);
+  };
+
+  return (
+    <SettingTile
+      title={
+        <Text as="span" size="L400">
+          Banner
+        </Text>
+      }
+    >
+      <Box direction="Column" gap="200" grow="Yes">
+        <Box
+          style={{
+            height: 100,
+            overflow: 'hidden',
+            borderRadius: config.radii.R300,
+          }}
+        >
+          {imageFileUrl || bannerUrl ? (
+            <img
+              src={imageFileUrl ?? bannerUrl}
+              alt="Banner preview"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <Box justifyContent="Center" alignItems="Center" style={{ height: '100%' }}>
+              <Text size="T200" priority="300">
+                No banner set
+              </Text>
+            </Box>
+          )}
+        </Box>
+        {uploadAtom ? (
+          <CompactUploadCardRenderer
+            uploadAtom={uploadAtom}
+            onRemove={() => setImageFile(undefined)}
+            onComplete={handleUploaded}
+          />
+        ) : (
+          <Box gap="200">
+            <Button
+              size="300"
+              variant="Secondary"
+              fill="Soft"
+              radii="300"
+              onClick={() => pickFile('image/*')}
+            >
+              <Text size="B300">{bannerUrl ? 'Change' : 'Upload'}</Text>
+            </Button>
+            {bannerUrl && (
+              <Button size="300" variant="Critical" fill="None" radii="300" onClick={handleRemove}>
+                <Text size="B300">Remove</Text>
+              </Button>
+            )}
+          </Box>
+        )}
+      </Box>
     </SettingTile>
   );
 }
@@ -391,6 +479,7 @@ export function Profile() {
         gap="400"
       >
         <ProfileAvatar userId={userId} profile={profile} />
+        <ProfileBanner profile={profile} />
         <ProfileDisplayName userId={userId} profile={profile} />
         <ProfilePronouns profile={profile} />
       </SequenceCard>

@@ -25,7 +25,7 @@ import { DirectCreateSearchParams } from '../../pages/paths';
 import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { UserRichPresence } from './UserRichPresence';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { getProfilePronouns } from '../../../types/matrix/profile';
+import { getProfileBanner, getProfilePronouns } from '../../../types/matrix/profile';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -67,6 +67,10 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const pronouns = getProfilePronouns(profile.extended)
     .map((pronoun) => pronoun.summary)
     .join(', ');
+  const bannerMxc = getProfileBanner(profile.extended);
+  const bannerUrl = bannerMxc
+    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 200, 'crop') ?? undefined
+    : undefined;
 
   const handleMessage = () => {
     closeUserRoomProfile();
@@ -81,6 +85,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
       <UserHero
         userId={userId}
         avatarUrl={avatarUrl}
+        bannerUrl={bannerUrl}
         presence={presence && presence.lastActiveTs !== 0 ? presence : undefined}
       />
       <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
