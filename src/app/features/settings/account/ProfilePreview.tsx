@@ -32,7 +32,7 @@ export function ProfilePreview({ profile, userId, requestEdit }: ProfilePreviewP
     : undefined;
   const bannerMxc = getProfileBanner(profile.extended);
   const bannerUrl = bannerMxc
-    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 224, 'crop') ?? undefined
+    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
   const pronouns = getProfilePronouns(profile.extended)
     .map((pronoun) => pronoun.summary)

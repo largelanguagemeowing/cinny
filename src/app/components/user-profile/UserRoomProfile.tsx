@@ -76,7 +76,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const biography = getProfileBiography(profile.extended);
   const connections = getProfileConnections(profile.extended);
   const bannerUrl = bannerMxc
-    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 200, 'crop') ?? undefined
+    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
 
   const handleMessage = () => {

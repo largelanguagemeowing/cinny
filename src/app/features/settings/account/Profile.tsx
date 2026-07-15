@@ -225,7 +225,7 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
   const useAuthentication = useMediaAuthentication();
   const bannerMxc = getProfileBanner(profile.extended);
   const bannerUrl = bannerMxc
-    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication, 640, 200, 'crop') ?? undefined
+    ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
   const [imageFile, setImageFile] = useState<File>();
   const imageFileUrl = useObjectURL(imageFile);
