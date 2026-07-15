@@ -1,6 +1,5 @@
-import { Box, Button, config, Icon, Icons, Text } from 'folds';
+import { Box, config, Text } from 'folds';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { UserHero, UserHeroName } from './UserHero';
 import { mxcUrlToHttp } from '../../utils/matrix';
 import { getMemberAvatarMxc, getMemberDisplayName } from '../../utils/room';
@@ -9,10 +8,9 @@ import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { usePowerLevels } from '../../hooks/usePowerLevels';
 import { useRoom } from '../../hooks/useRoom';
 import { useUserPresence } from '../../hooks/useUserPresence';
-import { IgnoredUserAlert, MutualRoomsChip, OptionsChip, ShareChip } from './UserChips';
-import { useCloseUserRoomProfile } from '../../state/hooks/userRoomProfile';
+import { IgnoredUserAlert, MutualRoomsChip, OptionsChip } from './UserChips';
 import { PowerChip } from './PowerChip';
-import { UserInviteAlert, UserBanAlert, UserModeration, UserKickAlert } from './UserModeration';
+import { UserInviteAlert, UserBanAlert, UserKickAlert } from './UserModeration';
 import { useIgnoredUsers } from '../../hooks/useIgnoredUsers';
 import { useMembership } from '../../hooks/useMembership';
 import { Membership } from '../../../types/matrix/room';
@@ -20,8 +18,6 @@ import { useRoomCreators } from '../../hooks/useRoomCreators';
 import { useRoomPermissions } from '../../hooks/useRoomPermissions';
 import { useMemberPowerCompare } from '../../hooks/useMemberPowerCompare';
 import { CreatorChip } from './CreatorChip';
-import { getDirectCreatePath, withSearchParam } from '../../pages/pathUtils';
-import { DirectCreateSearchParams } from '../../pages/paths';
 import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { UserRichPresence } from './UserRichPresence';
 import { useUserProfile } from '../../hooks/useUserProfile';
@@ -31,6 +27,7 @@ import {
   getProfileConnections,
   getProfilePronouns,
 } from '../../../types/matrix/profile';
+import { DirectMessageComposer } from './DirectMessageComposer';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -38,8 +35,6 @@ type UserRoomProfileProps = {
 export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
-  const navigate = useNavigate();
-  const closeUserRoomProfile = useCloseUserRoomProfile();
   const ignoredUsers = useIgnoredUsers();
   const ignored = ignoredUsers.includes(userId);
 
@@ -78,14 +73,6 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
     ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
 
-  const handleMessage = () => {
-    closeUserRoomProfile();
-    const directSearchParam: DirectCreateSearchParams = {
-      userId,
-    };
-    navigate(withSearchParam(getDirectCreatePath(), directSearchParam));
-  };
-
   return (
     <Box direction="Column">
       <UserHero
@@ -98,26 +85,20 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
         <Box direction="Column" gap="400">
           <Box gap="400" alignItems="Start">
             <UserHeroName displayName={displayName} userId={userId} pronouns={pronouns} />
-            {userId !== myUserId && (
-              <Box shrink="No">
-                <Button
-                  size="300"
-                  variant="Primary"
-                  fill="Solid"
-                  radii="300"
-                  before={<Icon size="50" src={Icons.Message} filled />}
-                  onClick={handleMessage}
-                >
-                  <Text size="B300">Message</Text>
-                </Button>
-              </Box>
-            )}
           </Box>
           <Box alignItems="Center" gap="200" wrap="Wrap">
-            <ShareChip userId={userId} />
             {creator ? <CreatorChip /> : <PowerChip userId={userId} />}
             {userId !== myUserId && <MutualRoomsChip userId={userId} />}
-            {userId !== myUserId && <OptionsChip userId={userId} />}
+            {userId !== myUserId && (
+              <OptionsChip
+                userId={userId}
+                membership={membership}
+                canInvite={canInvite}
+                canKick={canKickUser}
+                canBan={canBanUser}
+                canUnban={canUnban}
+              />
+            )}
           </Box>
         </Box>
         {biography && (
@@ -150,9 +131,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
         {ignored && <IgnoredUserAlert />}
         {member && membership === Membership.Ban && (
           <UserBanAlert
-            userId={userId}
             reason={member.events.member?.getContent().reason}
-            canUnban={canUnban}
             bannedBy={member.events.member?.getSender()}
             ts={member.events.member?.getTs()}
           />
@@ -169,19 +148,12 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
           )}
         {member && membership === Membership.Invite && (
           <UserInviteAlert
-            userId={userId}
             reason={member.events.member?.getContent().reason}
-            canKick={canKickUser}
             invitedBy={member.events.member?.getSender()}
             ts={member.events.member?.getTs()}
           />
         )}
-        <UserModeration
-          userId={userId}
-          canInvite={canInvite && membership === Membership.Leave}
-          canKick={canKickUser && membership === Membership.Join}
-          canBan={canBanUser && membership !== Membership.Ban}
-        />
+        {userId !== myUserId && !ignored && <DirectMessageComposer userId={userId} />}
       </Box>
     </Box>
   );
