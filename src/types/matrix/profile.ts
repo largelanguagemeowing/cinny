@@ -6,6 +6,8 @@ export const MSC4427_BANNER = 'chat.commet.profile_banner';
 export const M_BANNER_URL = 'm.banner_url';
 export const MSC4440_BIOGRAPHY = 'gay.fomx.biography';
 export const M_BIOGRAPHY = 'm.biography';
+export const MSC4462_CONNECTIONS = 'fyi.cisnt.connections';
+export const M_CONNECTIONS = 'm.connections';
 
 export const USER_PROFILE_FIELDS = [
   ...RICH_PRESENCE_PROFILE_FIELDS,
@@ -15,12 +17,19 @@ export const USER_PROFILE_FIELDS = [
   M_BANNER_URL,
   MSC4440_BIOGRAPHY,
   M_BIOGRAPHY,
+  MSC4462_CONNECTIONS,
+  M_CONNECTIONS,
 ];
 
 export type ProfilePronoun = {
   summary: string;
   language: string;
   grammaticalGender?: string;
+};
+
+export type ProfileConnection = {
+  description: string;
+  uri: string;
 };
 
 const parsePronoun = (value: unknown): ProfilePronoun | undefined => {
@@ -58,4 +67,30 @@ export const getProfileBiography = (profile: Record<string, unknown>): string | 
     return typeof content.body === 'string' && content.mimetype !== 'text/html';
   }) as Record<string, unknown> | undefined;
   return representation ? String(representation.body) : undefined;
+};
+
+const isAllowedConnectionUri = (value: string): boolean => {
+  try {
+    return ['http:', 'https:', 'mailto:', 'matrix:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
+
+export const getProfileConnections = (profile: Record<string, unknown>): ProfileConnection[] => {
+  const value = profile[MSC4462_CONNECTIONS] ?? profile[M_CONNECTIONS];
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).flatMap((item) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return [];
+    const content = item as Record<string, unknown>;
+    if (
+      typeof content.description !== 'string' ||
+      content.description.length > 200 ||
+      typeof content.uri !== 'string' ||
+      !isAllowedConnectionUri(content.uri)
+    ) {
+      return [];
+    }
+    return [{ description: content.description, uri: content.uri }];
+  });
 };
