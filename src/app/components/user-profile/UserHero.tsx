@@ -15,7 +15,7 @@ import FocusTrap from 'focus-trap-react';
 import * as css from './styles.css';
 import { UserAvatar } from '../user-avatar';
 import colorMXID from '../../../util/colorMXID';
-import { getMxIdLocalPart } from '../../utils/matrix';
+import { getMxIdLocalPart, getMxIdServer } from '../../utils/matrix';
 import { BreakWord, LineClamp3 } from '../../styles/Text.css';
 import { UserPresence } from '../../hooks/useUserPresence';
 import { AvatarPresence, PresenceBadge } from '../presence';
@@ -105,6 +105,7 @@ type UserHeroNameProps = {
 };
 export function UserHeroName({ displayName, userId, pronouns }: UserHeroNameProps) {
   const username = getMxIdLocalPart(userId);
+  const server = getMxIdServer(userId);
 
   return (
     <Box grow="Yes" direction="Column" gap="0">
@@ -123,8 +124,13 @@ export function UserHeroName({ displayName, userId, pronouns }: UserHeroNameProp
         )}
       </Box>
       <Box alignItems="Center" gap="100" wrap="Wrap">
-        <Text size="T200" className={classNames(BreakWord, LineClamp3)} title={username}>
+        <Text size="T200" className={classNames(BreakWord, LineClamp3)} title={userId}>
           @{username}
+          {server && (
+            <Text as="span" size="Inherit" priority="300">
+              :{server}
+            </Text>
+          )}
         </Text>
       </Box>
     </Box>

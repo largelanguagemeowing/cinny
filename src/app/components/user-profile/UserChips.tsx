@@ -1,5 +1,4 @@
 import React, { MouseEventHandler, useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import FocusTrap from 'focus-trap-react';
 import { isKeyHotkey } from 'is-hotkey';
 import { Room } from 'matrix-js-sdk';
@@ -9,7 +8,6 @@ import {
   MenuItem,
   config,
   Text,
-  Line,
   Chip,
   Icon,
   Icons,
@@ -21,11 +19,9 @@ import {
   Avatar,
 } from 'folds';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
-import { getMxIdServer } from '../../utils/matrix';
 import { useCloseUserRoomProfile } from '../../state/hooks/userRoomProfile';
 import { stopPropagation } from '../../utils/keyboard';
 import { copyToClipboard } from '../../utils/dom';
-import { getExploreServerPath } from '../../pages/pathUtils';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { factoryRoomIdByAtoZ } from '../../utils/sort';
 import {
@@ -45,106 +41,6 @@ import { useTimeoutToggle } from '../../hooks/useTimeoutToggle';
 import { useIgnoredUsers } from '../../hooks/useIgnoredUsers';
 import { CutoutCard } from '../cutout-card';
 import { SettingTile } from '../setting-tile';
-
-export function ServerChip({ server }: { server: string }) {
-  const mx = useMatrixClient();
-  const myServer = getMxIdServer(mx.getSafeUserId());
-  const navigate = useNavigate();
-  const closeProfile = useCloseUserRoomProfile();
-  const [copied, setCopied] = useTimeoutToggle();
-
-  const [cords, setCords] = useState<RectCords>();
-
-  const open: MouseEventHandler<HTMLButtonElement> = (evt) => {
-    setCords(evt.currentTarget.getBoundingClientRect());
-  };
-
-  const close = () => setCords(undefined);
-
-  return (
-    <PopOut
-      anchor={cords}
-      position="Bottom"
-      align="Start"
-      offset={4}
-      content={
-        <FocusTrap
-          focusTrapOptions={{
-            initialFocus: false,
-            onDeactivate: close,
-            clickOutsideDeactivates: true,
-            escapeDeactivates: stopPropagation,
-            isKeyForward: (evt: KeyboardEvent) => isKeyHotkey('arrowdown', evt),
-            isKeyBackward: (evt: KeyboardEvent) => isKeyHotkey('arrowup', evt),
-          }}
-        >
-          <Menu>
-            <div style={{ padding: config.space.S100 }}>
-              <MenuItem
-                variant="Surface"
-                fill="None"
-                size="300"
-                radii="300"
-                onClick={() => {
-                  copyToClipboard(server);
-                  setCopied();
-                  close();
-                }}
-              >
-                <Text size="B300">Copy Server</Text>
-              </MenuItem>
-              <MenuItem
-                variant="Surface"
-                fill="None"
-                size="300"
-                radii="300"
-                onClick={() => {
-                  navigate(getExploreServerPath(server));
-                  closeProfile();
-                }}
-              >
-                <Text size="B300">Explore Community</Text>
-              </MenuItem>
-            </div>
-            <Line size="300" />
-            <div style={{ padding: config.space.S100 }}>
-              <MenuItem
-                variant={myServer === server ? 'Surface' : 'Critical'}
-                fill="None"
-                size="300"
-                radii="300"
-                onClick={() => {
-                  window.open(`https://${server}`, '_blank');
-                  close();
-                }}
-              >
-                <Text size="B300">Open in Browser</Text>
-              </MenuItem>
-            </div>
-          </Menu>
-        </FocusTrap>
-      }
-    >
-      <Chip
-        variant={myServer === server ? 'SurfaceVariant' : 'Warning'}
-        radii="Pill"
-        before={
-          cords ? (
-            <Icon size="50" src={Icons.ChevronBottom} />
-          ) : (
-            <Icon size="50" src={copied ? Icons.Check : Icons.Server} />
-          )
-        }
-        onClick={open}
-        aria-pressed={!!cords}
-      >
-        <Text size="B300" truncate>
-          {server}
-        </Text>
-      </Chip>
-    </PopOut>
-  );
-}
 
 export function ShareChip({ userId }: { userId: string }) {
   const [cords, setCords] = useState<RectCords>();
