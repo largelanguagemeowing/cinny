@@ -6,11 +6,7 @@ import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { getMxIdLocalPart, mxcUrlToHttp } from '../../../utils/matrix';
 import { UserAvatar } from '../../../components/user-avatar';
 import { nameInitials } from '../../../utils/common';
-import {
-  getProfileBiography,
-  getProfileConnections,
-  getProfilePronouns,
-} from '../../../../types/matrix/profile';
+import { getProfileBiography, getProfilePronouns } from '../../../../types/matrix/profile';
 import { useUserPresence } from '../../../hooks/useUserPresence';
 import { useUserRichPresence } from '../../../hooks/useUserRichPresence';
 import { UserRichPresence } from '../../../components/user-profile/UserRichPresence';
@@ -37,7 +33,6 @@ export function ProfilePreview({ profile, bannerMxc, userId, requestEdit }: Prof
     .map((pronoun) => pronoun.summary)
     .join(', ');
   const biography = getProfileBiography(profile.extended);
-  const connections = getProfileConnections(profile.extended);
   const presence = useUserPresence(userId);
   const richPresence = useUserRichPresence(userId);
 
@@ -80,30 +75,6 @@ export function ProfilePreview({ profile, bannerMxc, userId, requestEdit }: Prof
               <Text className={css.Biography} size="T300" priority="300">
                 {biography}
               </Text>
-            </Box>
-          )}
-          {connections.length > 0 && (
-            <Box direction="Column" gap="100">
-              <Text size="L400">Links</Text>
-              <Box as="ul" className={css.Connections} direction="Column" gap="100">
-                {connections.map((connection) => (
-                  <li key={`${connection.description}:${connection.uri}`}>
-                    <Text size="T200" priority="300">
-                      {connection.description}
-                    </Text>
-                    <Text
-                      as="a"
-                      className={css.Connection}
-                      href={connection.uri}
-                      target={connection.uri.startsWith('http') ? '_blank' : undefined}
-                      rel="noreferrer noopener"
-                      size="T200"
-                    >
-                      {connection.uri}
-                    </Text>
-                  </li>
-                ))}
-              </Box>
             </Box>
           )}
           {richPresence && <UserRichPresence presence={richPresence} />}

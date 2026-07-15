@@ -24,7 +24,6 @@ import { useUserProfile } from '../../hooks/useUserProfile';
 import {
   getProfileBanner,
   getProfileBiography,
-  getProfileConnections,
   getProfilePronouns,
 } from '../../../types/matrix/profile';
 import { DirectMessageComposer } from './DirectMessageComposer';
@@ -68,7 +67,6 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
     .join(', ');
   const bannerMxc = getProfileBanner(profile.extended);
   const biography = getProfileBiography(profile.extended);
-  const connections = getProfileConnections(profile.extended);
   const bannerUrl = bannerMxc
     ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
@@ -106,27 +104,6 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
           <Text style={{ whiteSpace: 'pre-wrap' }} priority="300">
             {biography}
           </Text>
-        )}
-        {connections.length > 0 && (
-          <Box as="ul" direction="Column" gap="100" style={{ margin: 0, padding: 0 }}>
-            {connections.map((connection) => (
-              <Box as="li" key={`${connection.description}:${connection.uri}`} direction="Column">
-                <Text size="L400">{connection.description}</Text>
-                <Text
-                  as="a"
-                  href={connection.uri}
-                  target={connection.uri.startsWith('http') ? '_blank' : undefined}
-                  rel="noreferrer noopener"
-                  size="T200"
-                  priority="300"
-                  truncate
-                  title={connection.uri}
-                >
-                  {connection.uri}
-                </Text>
-              </Box>
-            ))}
-          </Box>
         )}
         {richPresence && <UserRichPresence presence={richPresence} />}
         {ignored && <IgnoredUserAlert />}

@@ -48,11 +48,9 @@ import {
   getProfilePronouns,
   getProfileBanner,
   getProfileBiography,
-  getProfileConnections,
   MSC4247_PRONOUNS,
   MSC4427_BANNER,
   MSC4440_BIOGRAPHY,
-  MSC4462_CONNECTIONS,
   ProfilePronoun,
 } from '../../../../types/matrix/profile';
 import { ProfilePreview } from './ProfilePreview';
@@ -648,84 +646,6 @@ function ProfileBiography({ profile }: { profile: UserProfile }) {
   );
 }
 
-function ProfileConnections({ profile }: { profile: UserProfile }) {
-  const mx = useMatrixClient();
-  const current = getProfileConnections(profile.extended);
-  const currentValue = current
-    .map((connection) => `${connection.description} | ${connection.uri}`)
-    .join('\n');
-  const [value, setValue] = useState(currentValue);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => setValue(currentValue), [currentValue]);
-
-  const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
-    event.preventDefault();
-    const connections = value
-      .split('\n')
-      .slice(0, 20)
-      .flatMap((line) => {
-        const separator = line.indexOf('|');
-        if (separator < 0) return [];
-        const description = line.slice(0, separator).trim().slice(0, 200);
-        const uri = line.slice(separator + 1).trim();
-        try {
-          if (!['http:', 'https:', 'mailto:', 'matrix:'].includes(new URL(uri).protocol)) return [];
-        } catch {
-          return [];
-        }
-        return description && uri ? [{ description, uri }] : [];
-      });
-    setSaving(true);
-    try {
-      if (connections.length > 0) {
-        await mx.setExtendedProfileProperty(MSC4462_CONNECTIONS, connections);
-      } else {
-        await mx.deleteExtendedProfileProperty(MSC4462_CONNECTIONS);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <SettingTile
-      title={
-        <Text as="span" size="L400">
-          Links
-        </Text>
-      }
-      description="One per line, formatted as Label | URL."
-    >
-      <Box as="form" onSubmit={handleSubmit} direction="Column" gap="200" grow="Yes">
-        <TextArea
-          aria-label="Profile links"
-          value={value}
-          onChange={(event) => setValue(event.currentTarget.value)}
-          placeholder={'Homepage | https://example.org\nEmail | mailto:me@example.org'}
-          rows={4}
-          resize="Vertical"
-          variant="Secondary"
-          radii="300"
-        />
-        <Box justifyContent="End">
-          <Button
-            type="submit"
-            size="300"
-            variant="Success"
-            fill="Solid"
-            radii="300"
-            disabled={saving || value === currentValue}
-          >
-            {saving && <Spinner variant="Success" fill="Solid" size="300" />}
-            <Text size="B300">Save</Text>
-          </Button>
-        </Box>
-      </Box>
-    </SettingTile>
-  );
-}
-
 export function Profile() {
   const mx = useMatrixClient();
   const userId = mx.getSafeUserId();
@@ -773,7 +693,6 @@ export function Profile() {
             <ProfileStatus userId={userId} />
             <ProfilePronouns profile={profile} />
             <ProfileBiography profile={profile} />
-            <ProfileConnections profile={profile} />
           </SequenceCard>
         </Box>
       </div>

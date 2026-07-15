@@ -63,17 +63,6 @@ export const Biography = style({
   overflowWrap: 'anywhere',
 });
 
-export const Connections = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-});
-
-export const Connection = style({
-  color: color.Primary.Main,
-  overflowWrap: 'anywhere',
-});
-
 export const EditorColumn = style({
   minWidth: 0,
 });
