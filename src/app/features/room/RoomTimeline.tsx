@@ -511,8 +511,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
   const atBottomAnchorRef = useRef<HTMLElement>(null);
   const [atBottom, setAtBottom] = useState<boolean>(true);
-  const atBottomRef = useRef(atBottom);
-  atBottomRef.current = atBottom;
+  const atBottomRef = useRef(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollToBottomRef = useRef({
@@ -588,6 +587,23 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
       ),
       onEnd: handleTimelinePagination,
     });
+
+  useResizeObserver(
+    useMemo(() => {
+      let mounted = false;
+      return () => {
+        if (!mounted) {
+          mounted = true;
+          return;
+        }
+        const scrollElement = getScrollElement();
+        if (scrollElement && atBottomRef.current && atLiveEndRef.current) {
+          scrollToBottom(scrollElement);
+        }
+      };
+    }, [getScrollElement]),
+    useCallback(() => getScrollElement()?.firstElementChild ?? null, [getScrollElement])
+  );
 
   const loadEventTimeline = useEventTimelineLoader(
     mx,
@@ -757,8 +773,12 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         const target = atBottomAnchorRef.current;
         if (!target) return;
         const targetEntry = getIntersectionObserverEntry(target, entries);
-        if (targetEntry) debounceSetAtBottom(targetEntry);
+        if (targetEntry) {
+          if (!targetEntry.isIntersecting) atBottomRef.current = false;
+          debounceSetAtBottom(targetEntry);
+        }
         if (targetEntry?.isIntersecting && atLiveEndRef.current) {
+          atBottomRef.current = true;
           setAtBottom(true);
           if (document.hasFocus()) {
             tryAutoMarkAsRead();
