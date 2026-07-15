@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { IPreviewUrlResponse } from 'matrix-js-sdk';
-import { Box, Icon, IconButton, Icons, Scroll, Spinner, Text, as, color, config } from 'folds';
+import { Box, Icon, IconButton, Icons, Scroll, Text, as, color, config } from 'folds';
 import { ImageOverlay } from '../ImageOverlay';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
@@ -31,7 +31,10 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
       loadPreview();
     }, [loadPreview]);
 
-    if (previewStatus.status === AsyncStatus.Error) return null;
+    // Only render once the preview succeeds. Returning null during loading
+    // and on error prevents height changes (loading spinner -> null) that
+    // would cause the timeline scroll position to jump.
+    if (previewStatus.status !== AsyncStatus.Success) return null;
 
     const renderContent = (prev: IPreviewUrlResponse) => {
       const thumbUrl = mxcUrlToHttp(
@@ -96,13 +99,7 @@ export const UrlPreviewCard = as<'div', { url: string; ts: number }>(
 
     return (
       <UrlPreview {...props} ref={ref}>
-        {previewStatus.status === AsyncStatus.Success ? (
-          renderContent(previewStatus.data)
-        ) : (
-          <Box grow="Yes" alignItems="Center" justifyContent="Center">
-            <Spinner variant="Secondary" size="400" />
-          </Box>
-        )}
+        {renderContent(previewStatus.data)}
       </UrlPreview>
     );
   }

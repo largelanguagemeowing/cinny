@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { OnIntersectionCallback, useIntersectionObserver } from './useIntersectionObserver';
+import { useResizeObserver } from './useResizeObserver';
 import {
   canFitInScrollView,
   getScrollInfo,
@@ -177,6 +178,12 @@ export const useVirtualPaginator = <TScrollElement extends HTMLElement>(
     opts?: ScrollToOptions;
   }>();
 
+  // Scroll anchor tracks the topmost visible item so we can compensate
+  // for async content height changes (images loading, URL previews, etc.)
+  // that shift content above the viewport and would otherwise cause the
+  // view to jump.
+  const scrollAnchorRef = useRef<{ index: number; offsetTop: number }>();
+
   const propRef = useRef({
     range,
     limit,
@@ -186,6 +193,7 @@ export const useVirtualPaginator = <TScrollElement extends HTMLElement>(
     // Clear restoreScrollRef on count change
     // As restoreScrollRef.current.anchorItem might changes
     restoreScrollRef.current = undefined;
+    scrollAnchorRef.current = undefined;
   }
   propRef.current = {
     range,
@@ -369,6 +377,9 @@ export const useVirtualPaginator = <TScrollElement extends HTMLElement>(
       behavior: 'instant',
     });
     restoreScrollRef.current = undefined;
+    // Clear scroll anchor so the ResizeObserver callback does not undo
+    // the scroll restoration we just performed.
+    scrollAnchorRef.current = undefined;
   }, [range, getScrollElement, getItemElement]);
 
   // When scrollToItem index was not in range.
@@ -410,6 +421,69 @@ export const useVirtualPaginator = <TScrollElement extends HTMLElement>(
       paginate(Direction.Forward);
     }
   }, [range, getScrollElement, paginate]);
+
+  // Track the topmost visible item on scroll so we can use it as a scroll
+  // anchor when async content height changes occur (images loading, URL
+  // previews resolving, etc.). The browser's built-in overflow-anchor does
+  // not reliably handle this with the virtual scroll + flexbox layout.
+  useEffect(() => {
+    const scrollEl = getScrollElement();
+    if (!scrollEl) return undefined;
+
+    const updateAnchor = () => {
+      const items = getItems();
+      const sOffsetTop = scrollEl.offsetTop;
+      const anchorItem = items.find((item) => {
+        const el = getItemElement(item);
+        if (!el) return false;
+        const offsetBottom = el.offsetTop - sOffsetTop + el.clientHeight;
+        return offsetBottom > scrollEl.scrollTop;
+      });
+      if (anchorItem !== undefined) {
+        const el = getItemElement(anchorItem);
+        if (el) {
+          scrollAnchorRef.current = { index: anchorItem, offsetTop: el.offsetTop };
+        }
+      }
+    };
+
+    scrollEl.addEventListener('scroll', updateAnchor, { passive: true });
+    updateAnchor();
+    return () => scrollEl.removeEventListener('scroll', updateAnchor);
+  }, [getScrollElement, getItems, getItemElement]);
+
+  // Adjust scroll position when async content height changes shift items
+  // above the viewport. This fires after the DOM has been updated but before
+  // the next paint, so the user should not see a visible jump.
+  useResizeObserver(
+    useMemo(
+      () => () => {
+        const scrollEl = getScrollElement();
+        if (!scrollEl || !scrollAnchorRef.current) return;
+
+        // Skip if the user is at (or near) the bottom. The at-bottom logic
+        // in the host component handles scrolling to the new bottom.
+        const distanceFromBottom =
+          scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+        if (distanceFromBottom <= 1) return;
+
+        const { index, offsetTop: oldOffsetTop } = scrollAnchorRef.current;
+        const el = getItemElement(index);
+        // The anchor item may have been dropped by pagination.
+        if (!el) {
+          scrollAnchorRef.current = undefined;
+          return;
+        }
+        const newOffsetTop = el.offsetTop;
+        if (newOffsetTop !== oldOffsetTop) {
+          scrollEl.scrollTop += newOffsetTop - oldOffsetTop;
+          scrollAnchorRef.current.offsetTop = newOffsetTop;
+        }
+      },
+      [getScrollElement, getItemElement]
+    ),
+    useCallback(() => getScrollElement()?.firstElementChild as Element | null, [getScrollElement])
+  );
 
   return {
     getItems,
