@@ -1,5 +1,5 @@
 import React, { MouseEventHandler, useEffect, useState } from 'react';
-import { Avatar, Box, Button, config, Icon, Icons, ProgressBar, Text } from 'folds';
+import { Box, config, Icon, IconButton, Icons, ProgressBar, Text } from 'folds';
 import { RichPresence, RichPresenceProgress } from '../../../types/matrix/richPresence';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
@@ -45,23 +45,24 @@ function MediaProgress({ progress }: MediaProgressProps) {
   const completed = getCompletedSeconds(progress, now);
 
   return (
-    <Box direction="Column" gap="100">
-      <ProgressBar
-        aria-label="Track progress"
-        variant="Primary"
-        size="300"
-        min={0}
-        max={progress.length}
-        value={completed}
-      />
-      <Box justifyContent="SpaceBetween" gap="200">
-        <Text size="T200" priority="300">
-          {formatDuration(completed)}
-        </Text>
-        <Text size="T200" priority="300">
-          {formatDuration(progress.length)}
-        </Text>
+    <Box alignItems="Center" gap="200">
+      <Text size="T200" priority="300">
+        {formatDuration(completed)}
+      </Text>
+      <Box grow="Yes">
+        <ProgressBar
+          aria-label="Track progress"
+          variant="Primary"
+          size="300"
+          min={0}
+          max={progress.length}
+          value={completed}
+          style={{ width: '100%' }}
+        />
       </Box>
+      <Text size="T200" priority="300">
+        {formatDuration(progress.length)}
+      </Text>
     </Box>
   );
 }
@@ -107,18 +108,39 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
       gap="300"
       style={{ padding: config.space.S300 }}
     >
-      <Box gap="300" alignItems="Center">
-        <Avatar size="400" radii="300">
+      <Box alignItems="Center" gap="200">
+        <Box grow="Yes">
+          <Text size="L400" priority="300" truncate>
+            {presence.type === 'media' ? `Listening to ${presence.player ?? 'music'}` : 'Playing'}
+          </Text>
+        </Box>
+        {externalUrl && (
+          <IconButton
+            as="a"
+            href={externalUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={handleExternalLink}
+            aria-label="Open track"
+            title="Open track"
+            size="300"
+            variant="Secondary"
+            fill="None"
+            radii="Pill"
+          >
+            <Icon src={Icons.External} size="50" />
+          </IconButton>
+        )}
+      </Box>
+      <Box gap="300" alignItems="Stretch">
+        <div className={css.RichPresenceArtwork}>
           {imageUrl ? (
             <img className={css.RichPresenceImage} src={imageUrl} alt="" draggable="false" />
           ) : (
-            <Icon src={Icons.Play} size="200" filled />
+            <Icon src={Icons.Play} size="300" filled />
           )}
-        </Avatar>
-        <Box direction="Column" gap="0" grow="Yes">
-          <Text size="T200" priority="300">
-            {presence.type === 'media' ? 'Listening to' : 'Active now'}
-          </Text>
+        </div>
+        <Box direction="Column" gap="100" grow="Yes" justifyContent="Center">
           <Text
             size="L400"
             truncate
@@ -127,14 +149,15 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
             {presence.type === 'media' ? presence.track : presence.name}
           </Text>
           {presence.type === 'media' ? (
-            <Text
-              size="T200"
-              priority="300"
-              truncate
-              title={`${presence.artist} - ${presence.album}`}
-            >
-              {presence.artist} - {presence.album}
-            </Text>
+            <>
+              <Text size="T300" priority="300" truncate title={presence.artist}>
+                {presence.artist}
+              </Text>
+              <Text size="T200" priority="300" truncate title={presence.album}>
+                {presence.album}
+              </Text>
+              {presence.progress && <MediaProgress progress={presence.progress} />}
+            </>
           ) : (
             presence.details && (
               <Text size="T200" priority="300">
@@ -144,32 +167,6 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
           )}
         </Box>
       </Box>
-      {presence.type === 'media' && presence.progress && (
-        <MediaProgress progress={presence.progress} />
-      )}
-      {presence.type === 'media' && (presence.player || externalUrl) && (
-        <Box gap="200" alignItems="Center" justifyContent="SpaceBetween">
-          <Text size="T200" priority="300" truncate>
-            {presence.player}
-          </Text>
-          {externalUrl && (
-            <Button
-              as="a"
-              href={externalUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              onClick={handleExternalLink}
-              size="300"
-              variant="Secondary"
-              fill="Soft"
-              radii="300"
-              before={<Icon src={Icons.External} size="50" />}
-            >
-              <Text size="B300">Open Track</Text>
-            </Button>
-          )}
-        </Box>
-      )}
     </SequenceCard>
   );
 }

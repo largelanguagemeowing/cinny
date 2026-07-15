@@ -53,6 +53,19 @@ export const UserHeroAvatarImg = style({
   },
 });
 
+export const RichPresenceArtwork = style({
+  width: toRem(80),
+  height: toRem(80),
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  overflow: 'hidden',
+  borderRadius: config.radii.R300,
+  color: color.SurfaceVariant.OnContainer,
+  backgroundColor: color.SurfaceVariant.ContainerActive,
+});
+
 export const RichPresenceImage = style({
   width: '100%',
   height: '100%',
