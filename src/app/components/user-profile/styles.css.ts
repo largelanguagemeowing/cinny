@@ -15,7 +15,7 @@ export const UserHero = style({
 });
 
 export const UserHeroCoverContainer = style({
-  height: toRem(96),
+  aspectRatio: '3 / 1',
   overflow: 'hidden',
 });
 export const UserHeroCover = style({

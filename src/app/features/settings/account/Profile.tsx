@@ -55,6 +55,9 @@ import {
   MSC4462_CONNECTIONS,
   ProfilePronoun,
 } from '../../../../types/matrix/profile';
+import { ProfilePreview } from './ProfilePreview';
+import * as previewCss from './ProfilePreview.css';
+import { useUserPresence } from '../../../hooks/useUserPresence';
 
 type ProfileProps = {
   profile: UserProfile;
@@ -226,9 +229,11 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
     : undefined;
   const [imageFile, setImageFile] = useState<File>();
   const imageFileUrl = useObjectURL(imageFile);
+  const [croppedFile, setCroppedFile] = useState<File>();
+  const croppedFileUrl = useObjectURL(croppedFile);
   const uploadAtom = useMemo(
-    () => (imageFile ? createUploadAtom(imageFile) : undefined),
-    [imageFile]
+    () => (croppedFile ? createUploadAtom(croppedFile) : undefined),
+    [croppedFile]
   );
   const pickFile = useFilePicker(setImageFile, false);
 
@@ -236,6 +241,7 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
     async (upload: UploadSuccess) => {
       await mx.setExtendedProfileProperty(MSC4427_BANNER, upload.mxc);
       setImageFile(undefined);
+      setCroppedFile(undefined);
     },
     [mx]
   );
@@ -255,14 +261,14 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
       <Box direction="Column" gap="200" grow="Yes">
         <Box
           style={{
-            height: 100,
+            aspectRatio: '3 / 1',
             overflow: 'hidden',
             borderRadius: config.radii.R300,
           }}
         >
-          {imageFileUrl || bannerUrl ? (
+          {croppedFileUrl || imageFileUrl || bannerUrl ? (
             <img
-              src={imageFileUrl ?? bannerUrl}
+              src={croppedFileUrl ?? imageFileUrl ?? bannerUrl}
               alt="Banner preview"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -277,7 +283,10 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
         {uploadAtom ? (
           <CompactUploadCardRenderer
             uploadAtom={uploadAtom}
-            onRemove={() => setImageFile(undefined)}
+            onRemove={() => {
+              setImageFile(undefined);
+              setCroppedFile(undefined);
+            }}
             onComplete={handleUploaded}
           />
         ) : (
@@ -299,6 +308,34 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
           </Box>
         )}
       </Box>
+      {imageFileUrl && (
+        <Overlay open backdrop={<OverlayBackdrop />}>
+          <OverlayCenter>
+            <FocusTrap
+              focusTrapOptions={{
+                initialFocus: false,
+                onDeactivate: () => setImageFile(undefined),
+                clickOutsideDeactivates: true,
+                escapeDeactivates: stopPropagation,
+              }}
+            >
+              <Modal className={ModalWide} variant="Surface" size="500">
+                <ImageEditor
+                  name={imageFile?.name ?? 'banner'}
+                  url={imageFileUrl}
+                  aspectRatio={3}
+                  outputWidth={1200}
+                  requestClose={() => setImageFile(undefined)}
+                  onApply={(file) => {
+                    setCroppedFile(file);
+                    setImageFile(undefined);
+                  }}
+                />
+              </Modal>
+            </FocusTrap>
+          </OverlayCenter>
+        </Overlay>
+      )}
     </SettingTile>
   );
 }
@@ -469,6 +506,76 @@ function ProfilePronouns({ profile }: { profile: UserProfile }) {
   );
 }
 
+function ProfileStatus({ userId }: { userId: string }) {
+  const mx = useMatrixClient();
+  const presence = useUserPresence(userId);
+  const currentValue = presence?.status ?? '';
+  const [value, setValue] = useState(currentValue);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => setValue(currentValue), [currentValue]);
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError(undefined);
+    try {
+      await mx.setPresence({
+        presence: presence?.presence ?? 'online',
+        status_msg: value.trim(),
+      });
+    } catch {
+      setError('Could not save your status. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SettingTile
+      title={
+        <Text as="span" size="L400">
+          Status
+        </Text>
+      }
+      description="A short message shown with your presence."
+    >
+      <Box as="form" onSubmit={handleSubmit} direction="Column" gap="100" grow="Yes">
+        <Box gap="200" grow="Yes">
+          <Box grow="Yes">
+            <Input
+              aria-label="Status message"
+              value={value}
+              onChange={(event) => setValue(event.currentTarget.value)}
+              placeholder="What are you up to?"
+              maxLength={256}
+              variant="Secondary"
+              radii="300"
+            />
+          </Box>
+          <Button
+            type="submit"
+            size="400"
+            variant="Success"
+            fill="Solid"
+            radii="300"
+            disabled={saving || value === currentValue}
+          >
+            {saving && <Spinner variant="Success" fill="Solid" size="300" />}
+            <Text size="B400">Save</Text>
+          </Button>
+        </Box>
+        {error && (
+          <Text role="alert" size="T200">
+            {error}
+          </Text>
+        )}
+      </Box>
+    </SettingTile>
+  );
+}
+
 function ProfileBiography({ profile }: { profile: UserProfile }) {
   const mx = useMatrixClient();
   const currentValue = getProfileBiography(profile.extended) ?? '';
@@ -615,25 +722,37 @@ function ProfileConnections({ profile }: { profile: UserProfile }) {
 
 export function Profile() {
   const mx = useMatrixClient();
-  const userId = mx.getUserId()!;
+  const userId = mx.getSafeUserId();
   const profile = useUserProfile(userId);
+  const requestEdit = () => {
+    document
+      .getElementById('profile-editor')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
-    <Box direction="Column" gap="100">
-      <Text size="L400">Profile</Text>
-      <SequenceCard
-        className={SequenceCardStyle}
-        variant="SurfaceVariant"
-        direction="Column"
-        gap="400"
-      >
-        <ProfileAvatar userId={userId} profile={profile} />
-        <ProfileBanner profile={profile} />
-        <ProfileDisplayName userId={userId} profile={profile} />
-        <ProfilePronouns profile={profile} />
-        <ProfileBiography profile={profile} />
-        <ProfileConnections profile={profile} />
-      </SequenceCard>
+    <Box className={previewCss.ProfilePage} direction="Column" gap="300">
+      <Text size="H3">Profile</Text>
+      <div className={previewCss.ProfileLayout}>
+        <ProfilePreview profile={profile} userId={userId} requestEdit={requestEdit} />
+        <Box id="profile-editor" className={previewCss.EditorColumn} direction="Column" gap="200">
+          <Text size="L400">Edit Profile</Text>
+          <SequenceCard
+            className={SequenceCardStyle}
+            variant="SurfaceVariant"
+            direction="Column"
+            gap="400"
+          >
+            <ProfileAvatar userId={userId} profile={profile} />
+            <ProfileBanner profile={profile} />
+            <ProfileDisplayName userId={userId} profile={profile} />
+            <ProfileStatus userId={userId} />
+            <ProfilePronouns profile={profile} />
+            <ProfileBiography profile={profile} />
+            <ProfileConnections profile={profile} />
+          </SequenceCard>
+        </Box>
+      </div>
     </Box>
   );
 }
