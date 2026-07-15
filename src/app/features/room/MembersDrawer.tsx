@@ -170,7 +170,7 @@ function MemberItem({
           {name}
         </Text>
         {statusMsg && (
-          <Text size="T200" priority="300" truncate title={statusMsg}>
+          <Text className={css.MemberStatus} size="T200" priority="300" truncate title={statusMsg}>
             {statusMsg}
           </Text>
         )}
