@@ -104,7 +104,12 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
   }
 });
 
-const MEDIA_PATHS = ['/_matrix/client/v1/media/download', '/_matrix/client/v1/media/thumbnail'];
+const MEDIA_PATHS = [
+  '/_matrix/client/v1/media/download',
+  '/_matrix/client/v1/media/thumbnail',
+  '/_matrix/media/v3/download',
+  '/_matrix/media/v3/thumbnail',
+];
 
 function mediaPath(url: string): boolean {
   try {
