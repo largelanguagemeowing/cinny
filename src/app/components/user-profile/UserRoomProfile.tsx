@@ -24,6 +24,8 @@ import { getDirectCreatePath, withSearchParam } from '../../pages/pathUtils';
 import { DirectCreateSearchParams } from '../../pages/paths';
 import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { UserRichPresence } from './UserRichPresence';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { getProfilePronouns } from '../../../types/matrix/profile';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -61,6 +63,10 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
 
   const presence = useUserPresence(userId);
   const richPresence = useUserRichPresence(userId);
+  const profile = useUserProfile(userId);
+  const pronouns = getProfilePronouns(profile.extended)
+    .map((pronoun) => pronoun.summary)
+    .join(', ');
 
   const handleMessage = () => {
     closeUserRoomProfile();
@@ -80,7 +86,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
       <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
         <Box direction="Column" gap="400">
           <Box gap="400" alignItems="Start">
-            <UserHeroName displayName={displayName} userId={userId} />
+            <UserHeroName displayName={displayName} userId={userId} pronouns={pronouns} />
             {userId !== myUserId && (
               <Box shrink="No">
                 <Button

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { UserEvent, UserEventHandlerMap } from 'matrix-js-sdk';
+import { ClientEvent, UserEvent, UserEventHandlerMap } from 'matrix-js-sdk';
 import { useMatrixClient } from './useMatrixClient';
 
 export type UserProfile = {
   avatarUrl?: string;
   displayName?: string;
+  extended: Record<string, unknown>;
 };
 export const useUserProfile = (userId: string): UserProfile => {
   const mx = useMatrixClient();
@@ -14,6 +15,7 @@ export const useUserProfile = (userId: string): UserProfile => {
     return {
       avatarUrl: user?.avatarUrl,
       displayName: user?.displayName,
+      extended: {},
     };
   });
 
@@ -31,17 +33,32 @@ export const useUserProfile = (userId: string): UserProfile => {
         displayName: myUser.displayName,
       }));
     };
+    const onProfileUpdate = (
+      updatedUserId: string,
+      updatedProfile: Record<string, unknown> | null
+    ) => {
+      if (updatedUserId !== userId) return;
+      setProfile((current) => ({
+        ...current,
+        extended: updatedProfile === null ? {} : { ...current.extended, ...updatedProfile },
+      }));
+    };
 
-    mx.getProfileInfo(userId).then((info) =>
-      setProfile({
-        avatarUrl: info.avatar_url,
-        displayName: info.displayname,
-      })
+    mx.getExtendedProfile(userId).then(
+      (info) =>
+        setProfile({
+          avatarUrl: typeof info.avatar_url === 'string' ? info.avatar_url : undefined,
+          displayName: typeof info.displayname === 'string' ? info.displayname : undefined,
+          extended: info,
+        }),
+      () => undefined
     );
 
+    mx.on(ClientEvent.UserProfileUpdate, onProfileUpdate);
     user?.on(UserEvent.AvatarUrl, onAvatarChange);
     user?.on(UserEvent.DisplayName, onDisplayNameChange);
     return () => {
+      mx.removeListener(ClientEvent.UserProfileUpdate, onProfileUpdate);
       user?.removeListener(UserEvent.AvatarUrl, onAvatarChange);
       user?.removeListener(UserEvent.DisplayName, onDisplayNameChange);
     };

@@ -95,8 +95,9 @@ export function UserHero({ userId, avatarUrl, presence }: UserHeroProps) {
 type UserHeroNameProps = {
   displayName?: string;
   userId: string;
+  pronouns?: string;
 };
-export function UserHeroName({ displayName, userId }: UserHeroNameProps) {
+export function UserHeroName({ displayName, userId, pronouns }: UserHeroNameProps) {
   const username = getMxIdLocalPart(userId);
 
   return (
@@ -109,6 +110,11 @@ export function UserHeroName({ displayName, userId }: UserHeroNameProps) {
         >
           {displayName ?? username ?? userId}
         </Text>
+        {pronouns && (
+          <Text size="T200" priority="300">
+            {pronouns}
+          </Text>
+        )}
       </Box>
       <Box alignItems="Center" gap="100" wrap="Wrap">
         <Text size="T200" className={classNames(BreakWord, LineClamp3)} title={username}>

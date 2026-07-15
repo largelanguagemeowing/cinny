@@ -43,6 +43,11 @@ import { ModalWide } from '../../../styles/Modal.css';
 import { createUploadAtom, UploadSuccess } from '../../../state/upload';
 import { CompactUploadCardRenderer } from '../../../components/upload-card';
 import { useCapabilities } from '../../../hooks/useCapabilities';
+import {
+  getProfilePronouns,
+  MSC4247_PRONOUNS,
+  ProfilePronoun,
+} from '../../../../types/matrix/profile';
 
 type ProfileProps = {
   profile: UserProfile;
@@ -303,6 +308,74 @@ function ProfileDisplayName({ profile, userId }: ProfileProps) {
   );
 }
 
+function ProfilePronouns({ profile }: { profile: UserProfile }) {
+  const mx = useMatrixClient();
+  const current = getProfilePronouns(profile.extended);
+  const currentValue = current.map((pronoun) => pronoun.summary).join(', ');
+  const [value, setValue] = useState(currentValue);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setValue(currentValue), [currentValue]);
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault();
+    const pronouns: ProfilePronoun[] = value
+      .split(',')
+      .map((summary) => summary.trim())
+      .filter(Boolean)
+      .map((summary) => ({ summary, language: 'en' }));
+    setSaving(true);
+    try {
+      await mx.setExtendedProfileProperty(
+        MSC4247_PRONOUNS,
+        pronouns.map(({ summary, language, grammaticalGender }) => ({
+          summary,
+          language,
+          ...(grammaticalGender ? { grammatical_gender: grammaticalGender } : {}),
+        }))
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SettingTile
+      title={
+        <Text as="span" size="L400">
+          Pronouns
+        </Text>
+      }
+      description="Separate multiple pronoun sets with commas."
+    >
+      <Box as="form" onSubmit={handleSubmit} gap="200" grow="Yes">
+        <Box grow="Yes">
+          <Input
+            aria-label="Pronouns"
+            value={value}
+            onChange={(event) => setValue(event.currentTarget.value)}
+            placeholder="they/them, she/her"
+            maxLength={128}
+            variant="Secondary"
+            radii="300"
+          />
+        </Box>
+        <Button
+          type="submit"
+          size="400"
+          variant="Success"
+          fill="Solid"
+          radii="300"
+          disabled={saving || value === currentValue}
+        >
+          {saving && <Spinner variant="Success" fill="Solid" size="300" />}
+          <Text size="B400">Save</Text>
+        </Button>
+      </Box>
+    </SettingTile>
+  );
+}
+
 export function Profile() {
   const mx = useMatrixClient();
   const userId = mx.getUserId()!;
@@ -319,6 +392,7 @@ export function Profile() {
       >
         <ProfileAvatar userId={userId} profile={profile} />
         <ProfileDisplayName userId={userId} profile={profile} />
+        <ProfilePronouns profile={profile} />
       </SequenceCard>
     </Box>
   );
