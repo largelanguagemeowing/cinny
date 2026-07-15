@@ -483,13 +483,14 @@ function ProfilePronouns({ profile }: { profile: UserProfile }) {
       description="Separate multiple pronoun sets with commas."
     >
       <Box as="form" onSubmit={handleSubmit} gap="200" grow="Yes">
-        <Box grow="Yes">
+        <Box grow="Yes" direction="Column">
           <Input
             aria-label="Pronouns"
             value={value}
             onChange={(event) => setValue(event.currentTarget.value)}
             placeholder="they/them, she/her"
             maxLength={128}
+            size="400"
             variant="Secondary"
             radii="300"
           />
@@ -547,13 +548,14 @@ function ProfileStatus({ userId }: { userId: string }) {
     >
       <Box as="form" onSubmit={handleSubmit} direction="Column" gap="100" grow="Yes">
         <Box gap="200" grow="Yes">
-          <Box grow="Yes">
+          <Box grow="Yes" direction="Column">
             <Input
               aria-label="Status message"
               value={value}
               onChange={(event) => setValue(event.currentTarget.value)}
               placeholder="What are you up to?"
               maxLength={256}
+              size="400"
               variant="Secondary"
               radii="300"
             />

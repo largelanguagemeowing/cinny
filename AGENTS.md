@@ -149,3 +149,7 @@ A successful deploy: the live hash changed from the previous deploy, and live ==
 
 - `AGENTS.md` itself is fork-only. It does not exist upstream and must survive every rebase.
 - Any other fork-only files (scripts, configs) should be clearly named and kept in fork-specific paths so they do not collide with upstream files during rebase.
+
+## Frontend form sizing
+
+- In account and settings form rows, explicitly use `size="400"` for text inputs paired with `size="400"` action buttons. Put each input in a growing column wrapper so it stretches to the available row width. Do not rely on defaults, and visually verify that newly added controls match adjacent fields and buttons.
