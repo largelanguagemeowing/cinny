@@ -22,6 +22,8 @@ import { useMemberPowerCompare } from '../../hooks/useMemberPowerCompare';
 import { CreatorChip } from './CreatorChip';
 import { getDirectCreatePath, withSearchParam } from '../../pages/pathUtils';
 import { DirectCreateSearchParams } from '../../pages/paths';
+import { useUserRichPresence } from '../../hooks/useUserRichPresence';
+import { UserRichPresence } from './UserRichPresence';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -58,6 +60,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const avatarUrl = (avatarMxc && mxcUrlToHttp(mx, avatarMxc, useAuthentication)) ?? undefined;
 
   const presence = useUserPresence(userId);
+  const richPresence = useUserRichPresence(userId);
 
   const handleMessage = () => {
     closeUserRoomProfile();
@@ -101,6 +104,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
             {userId !== myUserId && <OptionsChip userId={userId} />}
           </Box>
         </Box>
+        {richPresence && <UserRichPresence presence={richPresence} />}
         {ignored && <IgnoredUserAlert />}
         {member && membership === Membership.Ban && (
           <UserBanAlert

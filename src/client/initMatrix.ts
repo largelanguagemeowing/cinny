@@ -3,6 +3,7 @@ import { createClient, MatrixClient, IndexedDBStore, IndexedDBCryptoStore } from
 import { cryptoCallbacks } from './secretStorageKeys';
 import { clearNavToActivePathStore } from '../app/state/navToActivePath';
 import { pushSessionToSW } from '../sw-session';
+import { RICH_PRESENCE_PROFILE_FIELDS } from '../types/matrix/richPresence';
 
 type Session = {
   baseUrl: string;
@@ -48,6 +49,7 @@ export const startClient = async (mx: MatrixClient) => {
   pushSessionToSW(mx.baseUrl, mx.getAccessToken());
   await mx.startClient({
     lazyLoadMembers: true,
+    unstableMSC4429SyncUserProfileFields: RICH_PRESENCE_PROFILE_FIELDS,
   });
 };
 

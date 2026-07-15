@@ -52,3 +52,9 @@ export const UserHeroAvatarImg = style({
     },
   },
 });
+
+export const RichPresenceImage = style({
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+});
