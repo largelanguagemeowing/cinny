@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, forwardRef, useState } from 'react';
+import React, { MouseEventHandler, ReactNode, forwardRef, useState } from 'react';
 import { Room } from 'matrix-js-sdk';
 import {
   Avatar,
@@ -61,6 +61,8 @@ import { useAutoDiscoveryInfo } from '../../hooks/useAutoDiscoveryInfo';
 import { livekitSupport } from '../../hooks/useLivekitSupport';
 import { StateEvent } from '../../../types/matrix/room';
 import { webRTCSupported } from '../../utils/rtc';
+
+const VOICE_CHANNEL_PREFIX_RE = /^\[🔊\ufe0f?\]\s*/;
 
 type RoomNavItemMenuProps = {
   room: Room;
@@ -266,6 +268,10 @@ export function RoomNavItem({
 
   const roomName = useRoomName(room);
 
+  const voiceMatch = roomName.match(VOICE_CHANNEL_PREFIX_RE);
+  const isVoiceChannel = !!voiceMatch;
+  const displayName = isVoiceChannel ? roomName.slice(voiceMatch[0].length) : roomName;
+
   const handleContextMenu: MouseEventHandler<HTMLElement> = (evt) => {
     evt.preventDefault();
     setMenuAnchor({
@@ -315,6 +321,39 @@ export function RoomNavItem({
     }
   };
 
+  const iconOpacity = unread ? config.opacity.P500 : config.opacity.P300;
+  let avatarContent: ReactNode;
+  if (isVoiceChannel) {
+    avatarContent = <Icon style={{ opacity: iconOpacity }} size="100" src={Icons.VolumeHigh} />;
+  } else if (showAvatar) {
+    avatarContent = (
+      <RoomAvatar
+        roomId={room.roomId}
+        src={
+          direct
+            ? getDirectRoomAvatarUrl(mx, room, 96, useAuthentication)
+            : getRoomAvatarUrl(mx, room, 96, useAuthentication)
+        }
+        alt={displayName}
+        renderFallback={() => (
+          <Text as="span" size="H6">
+            {nameInitials(displayName)}
+          </Text>
+        )}
+      />
+    );
+  } else {
+    avatarContent = (
+      <RoomIcon
+        style={{ opacity: iconOpacity }}
+        filled={selected}
+        size="100"
+        joinRule={room.getJoinRule()}
+        roomType={room.getType()}
+      />
+    );
+  }
+
   return (
     <NavItem
       variant="Background"
@@ -330,36 +369,11 @@ export function RoomNavItem({
         <NavItemContent>
           <Box as="span" grow="Yes" alignItems="Center" gap="200">
             <Avatar size="200" radii="400">
-              {showAvatar ? (
-                <RoomAvatar
-                  roomId={room.roomId}
-                  src={
-                    direct
-                      ? getDirectRoomAvatarUrl(mx, room, 96, useAuthentication)
-                      : getRoomAvatarUrl(mx, room, 96, useAuthentication)
-                  }
-                  alt={roomName}
-                  renderFallback={() => (
-                    <Text as="span" size="H6">
-                      {nameInitials(roomName)}
-                    </Text>
-                  )}
-                />
-              ) : (
-                <RoomIcon
-                  style={{
-                    opacity: unread ? config.opacity.P500 : config.opacity.P300,
-                  }}
-                  filled={selected}
-                  size="100"
-                  joinRule={room.getJoinRule()}
-                  roomType={room.getType()}
-                />
-              )}
+              {avatarContent}
             </Avatar>
             <Box as="span" grow="Yes">
               <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
-                {roomName}
+                {displayName}
               </Text>
             </Box>
             {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
