@@ -220,10 +220,14 @@ function ProfileAvatar({ profile, userId }: ProfileProps) {
   );
 }
 
-function ProfileBanner({ profile }: { profile: UserProfile }) {
+type ProfileBannerProps = {
+  bannerMxc?: string;
+  onBannerChange: (bannerMxc: string | undefined) => void;
+};
+
+function ProfileBanner({ bannerMxc, onBannerChange }: ProfileBannerProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
-  const bannerMxc = getProfileBanner(profile.extended);
   const bannerUrl = bannerMxc
     ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
@@ -240,14 +244,16 @@ function ProfileBanner({ profile }: { profile: UserProfile }) {
   const handleUploaded = useCallback(
     async (upload: UploadSuccess) => {
       await mx.setExtendedProfileProperty(MSC4427_BANNER, upload.mxc);
+      onBannerChange(upload.mxc);
       setImageFile(undefined);
       setCroppedFile(undefined);
     },
-    [mx]
+    [mx, onBannerChange]
   );
 
   const handleRemove = async () => {
     await mx.deleteExtendedProfileProperty(MSC4427_BANNER);
+    onBannerChange(undefined);
   };
 
   return (
@@ -724,6 +730,19 @@ export function Profile() {
   const mx = useMatrixClient();
   const userId = mx.getSafeUserId();
   const profile = useUserProfile(userId);
+  const serverBannerMxc = getProfileBanner(profile.extended);
+  const [bannerOverride, setBannerOverride] = useState<{ value?: string }>();
+  const bannerMxc = bannerOverride ? bannerOverride.value : serverBannerMxc;
+
+  useEffect(() => {
+    if (bannerOverride && serverBannerMxc === bannerOverride.value) {
+      setBannerOverride(undefined);
+    }
+  }, [bannerOverride, serverBannerMxc]);
+
+  const handleBannerChange = useCallback((value: string | undefined) => {
+    setBannerOverride({ value });
+  }, []);
   const requestEdit = () => {
     document
       .getElementById('profile-editor')
@@ -734,7 +753,12 @@ export function Profile() {
     <Box className={previewCss.ProfilePage} direction="Column" gap="300">
       <Text size="H3">Profile</Text>
       <div className={previewCss.ProfileLayout}>
-        <ProfilePreview profile={profile} userId={userId} requestEdit={requestEdit} />
+        <ProfilePreview
+          profile={profile}
+          bannerMxc={bannerMxc}
+          userId={userId}
+          requestEdit={requestEdit}
+        />
         <Box id="profile-editor" className={previewCss.EditorColumn} direction="Column" gap="200">
           <Text size="L400">Edit Profile</Text>
           <SequenceCard
@@ -744,7 +768,7 @@ export function Profile() {
             gap="400"
           >
             <ProfileAvatar userId={userId} profile={profile} />
-            <ProfileBanner profile={profile} />
+            <ProfileBanner bannerMxc={bannerMxc} onBannerChange={handleBannerChange} />
             <ProfileDisplayName userId={userId} profile={profile} />
             <ProfileStatus userId={userId} />
             <ProfilePronouns profile={profile} />

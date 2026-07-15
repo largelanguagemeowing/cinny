@@ -7,7 +7,6 @@ import { getMxIdLocalPart, mxcUrlToHttp } from '../../../utils/matrix';
 import { UserAvatar } from '../../../components/user-avatar';
 import { nameInitials } from '../../../utils/common';
 import {
-  getProfileBanner,
   getProfileBiography,
   getProfileConnections,
   getProfilePronouns,
@@ -19,18 +18,18 @@ import * as css from './ProfilePreview.css';
 
 type ProfilePreviewProps = {
   profile: UserProfile;
+  bannerMxc?: string;
   userId: string;
   requestEdit: () => void;
 };
 
-export function ProfilePreview({ profile, userId, requestEdit }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, bannerMxc, userId, requestEdit }: ProfilePreviewProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const displayName = profile.displayName ?? getMxIdLocalPart(userId) ?? userId;
   const avatarUrl = profile.avatarUrl
     ? mxcUrlToHttp(mx, profile.avatarUrl, useAuthentication, 128, 128, 'crop') ?? undefined
     : undefined;
-  const bannerMxc = getProfileBanner(profile.extended);
   const bannerUrl = bannerMxc
     ? mxcUrlToHttp(mx, bannerMxc, useAuthentication) ?? undefined
     : undefined;
