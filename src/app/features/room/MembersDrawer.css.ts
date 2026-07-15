@@ -46,7 +46,7 @@ export const MembersGroup = style({
   paddingLeft: config.space.S200,
 });
 export const MemberStatus = style({
-  transform: `translateY(-${config.space.S100})`,
+  transform: `translateY(-${config.space.S200})`,
 });
 export const MembersGroupLabel = style({
   padding: config.space.S200,
