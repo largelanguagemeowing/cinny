@@ -79,6 +79,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
         userId={userId}
         avatarUrl={avatarUrl}
         bannerUrl={bannerUrl}
+        profileLoaded={profile.loaded}
         presence={presence && presence.lastActiveTs !== 0 ? presence : undefined}
       />
       <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>

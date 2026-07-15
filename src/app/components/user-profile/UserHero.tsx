@@ -26,10 +26,12 @@ type UserHeroProps = {
   userId: string;
   avatarUrl?: string;
   bannerUrl?: string;
+  profileLoaded: boolean;
   presence?: UserPresence;
 };
-export function UserHero({ userId, avatarUrl, bannerUrl, presence }: UserHeroProps) {
+export function UserHero({ userId, avatarUrl, bannerUrl, profileLoaded, presence }: UserHeroProps) {
   const [viewAvatar, setViewAvatar] = useState<string>();
+  const coverUrl = bannerUrl ?? (profileLoaded ? avatarUrl : undefined);
 
   return (
     <Box direction="Column" className={css.UserHero}>
@@ -37,13 +39,13 @@ export function UserHero({ userId, avatarUrl, bannerUrl, presence }: UserHeroPro
         className={css.UserHeroCoverContainer}
         style={{
           backgroundColor: colorMXID(userId),
-          filter: bannerUrl || avatarUrl ? undefined : 'brightness(50%)',
+          filter: coverUrl ? undefined : 'brightness(50%)',
         }}
       >
-        {(bannerUrl || avatarUrl) && (
+        {coverUrl && (
           <img
             className={bannerUrl ? css.UserHeroBanner : css.UserHeroCover}
-            src={bannerUrl ?? avatarUrl}
+            src={coverUrl}
             alt=""
             draggable="false"
           />
