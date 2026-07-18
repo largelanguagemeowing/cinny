@@ -8,13 +8,7 @@ import { roomToParentsAtom } from '../state/room/roomToParents';
 import { MSpaceChildContent, StateEvent } from '../../types/matrix/room';
 import { getAllParents, getStateEvents, isValidChild } from '../utils/room';
 import { isRoomId } from '../utils/matrix';
-import {
-  SortFunc,
-  byOrderKey,
-  byTsOldToNew,
-  factoryRoomIdByActivity,
-  factoryRoomIdByAtoZ,
-} from '../utils/sort';
+import { SortFunc, byOrderKey, byTsOldToNew, factoryRoomIdByActivity } from '../utils/sort';
 import { useStateEventCallback } from './useStateEventCallback';
 import { useAccountDataCallback } from './useAccountDataCallback';
 import { AccountDataEvent, RoomSortMode } from '../../types/matrix/accountData';
@@ -251,10 +245,6 @@ export const useSpaceJoinedHierarchy = (
     (sId: string, items: HierarchyItem[]) => {
       if (sortByActivity(sId)) {
         items.sort((a, b) => factoryRoomIdByActivity(mx)(a.roomId, b.roomId));
-        return items;
-      }
-      if (sortMode === 'alpha') {
-        items.sort((a, b) => factoryRoomIdByAtoZ(mx)(a.roomId, b.roomId));
         return items;
       }
       if (sortMode === 'custom') {

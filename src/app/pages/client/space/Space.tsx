@@ -58,6 +58,7 @@ import {
   useRoomOrderContent,
   useReorderRoom,
   useRoomSortMode,
+  getRoomSortMode,
   setRoomSortMode,
 } from '../../../hooks/useRoomOrder';
 import { RoomSortMode } from '../../../../types/matrix/accountData';
@@ -216,38 +217,6 @@ const SpaceMenu = forwardRef<HTMLDivElement, SpaceMenuProps>(({ room, requestClo
         >
           <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
             Default
-          </Text>
-        </MenuItem>
-        <MenuItem
-          onClick={() => handleSortChange('alpha')}
-          size="300"
-          after={
-            <Icon
-              size="100"
-              src={Icons.Check}
-              style={{ visibility: sortMode === 'alpha' ? 'visible' : 'hidden' }}
-            />
-          }
-          radii="300"
-        >
-          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
-            A to Z
-          </Text>
-        </MenuItem>
-        <MenuItem
-          onClick={() => handleSortChange('activity')}
-          size="300"
-          after={
-            <Icon
-              size="100"
-              src={Icons.Check}
-              style={{ visibility: sortMode === 'activity' ? 'visible' : 'hidden' }}
-            />
-          }
-          radii="300"
-        >
-          <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
-            Activity
           </Text>
         </MenuItem>
         <MenuItem
@@ -512,7 +481,7 @@ export function Space() {
   );
 
   const roomOrderContent = useRoomOrderContent();
-  const sortMode = roomOrderContent.sortModes?.[space.roomId] ?? 'default';
+  const sortMode = getRoomSortMode(roomOrderContent, space.roomId);
   const { orders } = roomOrderContent;
   const customOrders = useMemo(() => orders ?? {}, [orders]);
   const reorderRoom = useReorderRoom(space.roomId);

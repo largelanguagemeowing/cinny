@@ -61,13 +61,16 @@ export const useRoomOrderContent = (): KibbyRoomOrderContent => {
   return event?.getContent<KibbyRoomOrderContent>() ?? getRoomOrderContent(mx);
 };
 
+export const getRoomSortMode = (content: KibbyRoomOrderContent, spaceId: string): RoomSortMode =>
+  content.sortModes?.[spaceId] === 'custom' ? 'custom' : 'default';
+
 /**
  * Reactively returns the sort mode selected for the given space, defaulting to
  * `default` when none has been set.
  */
 export const useRoomSortMode = (spaceId: string): RoomSortMode => {
   const content = useRoomOrderContent();
-  return content.sortModes?.[spaceId] ?? 'default';
+  return getRoomSortMode(content, spaceId);
 };
 
 /**
