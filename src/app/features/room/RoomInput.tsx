@@ -4,6 +4,7 @@ import React, {
   forwardRef,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -137,7 +138,9 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
     const [legacyUsernameColor] = useSetting(settingsAtom, 'legacyUsernameColor');
     const direct = useIsDirectRoom();
     const commands = useCommands(mx, room);
+    const isMobile = useMemo(mobileOrTablet, []);
     const emojiBtnRef = useRef<HTMLButtonElement>(null);
+    const lastSendTouchEndRef = useRef(-Infinity);
     const roomToParents = useAtomValue(roomToParentsAtom);
     const powerLevels = usePowerLevelsContext();
     const creators = useRoomCreators(room);
@@ -391,8 +394,18 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       resetEditorHistory(editor);
       setReplyDraft(undefined);
       sendTypingStatus(false);
-      if (mobileOrTablet()) ReactEditor.focus(editor);
-    }, [mx, roomId, editor, replyDraft, sendTypingStatus, setReplyDraft, isMarkdown, commands]);
+      if (isMobile) ReactEditor.focus(editor);
+    }, [
+      mx,
+      roomId,
+      editor,
+      replyDraft,
+      sendTypingStatus,
+      setReplyDraft,
+      isMarkdown,
+      commands,
+      isMobile,
+    ]);
 
     const handleKeyDown: KeyboardEventHandler = useCallback(
       (evt) => {
@@ -695,7 +708,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
                         requestClose={() => {
                           setEmojiBoardTab((t) => {
                             if (t) {
-                              if (!mobileOrTablet()) ReactEditor.focus(editor);
+                              if (!isMobile) ReactEditor.focus(editor);
                               return undefined;
                             }
                             return t;
@@ -738,7 +751,20 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
                   </PopOut>
                 )}
               </UseStateProvider>
-              <IconButton onClick={submit} variant="SurfaceVariant" size="300" radii="300">
+              <IconButton
+                onTouchEnd={(evt) => {
+                  evt.preventDefault();
+                  lastSendTouchEndRef.current = evt.timeStamp;
+                  submit();
+                }}
+                onClick={(evt) => {
+                  if (evt.timeStamp - lastSendTouchEndRef.current < 1000) return;
+                  submit();
+                }}
+                variant="SurfaceVariant"
+                size="300"
+                radii="300"
+              >
                 <Icon src={Icons.Send} />
               </IconButton>
             </>
