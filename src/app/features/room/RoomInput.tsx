@@ -57,10 +57,13 @@ import {
   replaceShortcodeWithEmoji,
 } from '../../components/editor';
 import { EmojiBoard, EmojiBoardTab } from '../../components/emoji-board';
-import { getGifToSend, KlipyGif } from '../../utils/klipy';
+import { getGifToSend } from '../../utils/klipy';
+import { FavoriteGif } from '../../state/gifFavorites';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import {
   TUploadContent,
+  decryptFile,
+  downloadEncryptedMedia,
   encryptFile,
   getImageInfo,
   getMxIdLocalPart,
@@ -474,21 +477,78 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       });
     };
 
-    const handleGifSelect = async (gif: KlipyGif) => {
-      const format = getGifToSend(gif);
-      if (!format?.url) return;
+    const handleGifSelect = async (fav: FavoriteGif) => {
+      const sendGifContent = (content: IContent) => {
+        const finalContent: IContent = { ...content };
+        if (replyDraft) {
+          finalContent['m.relates_to'] = {
+            'm.in_reply_to': {
+              event_id: replyDraft.eventId,
+            },
+          };
+          if (replyDraft.relation?.rel_type === RelationType.Thread) {
+            finalContent['m.relates_to'].event_id = replyDraft.relation.event_id;
+            finalContent['m.relates_to'].rel_type = RelationType.Thread;
+            finalContent['m.relates_to'].is_falling_back = false;
+          }
+        }
+        mx.sendMessage(roomId, finalContent as any);
+        if (replyDraft) setReplyDraft(undefined);
+      };
+
+      const safeGifName = (name: string, fallback: string) =>
+        name
+          .replace(/[/\\?%*:|"<>/]/g, '')
+          .trim()
+          .slice(0, 50) || fallback;
 
       try {
-        const resp = await fetch(format.url);
-        if (!resp.ok) return;
-        const blob = await resp.blob();
-        const safeTitle =
-          (gif.title || 'gif')
-            .replace(/[/\\?%*:|"<>/]/g, '')
-            .trim()
-            .slice(0, 50) || 'gif';
-        const file = new File([blob], `${safeTitle}.gif`, {
-          type: blob.type || 'image/gif',
+        // An unencrypted mxc favourite going into an unencrypted room can
+        // reuse the already uploaded content without a re-upload.
+        if (fav.kind === 'mxc' && !fav.encInfo && !room.hasEncryptionStateEvent()) {
+          sendGifContent({
+            msgtype: MsgType.Image,
+            body: fav.body,
+            filename: fav.body,
+            url: fav.mxc,
+            info: fav.info,
+          });
+          return;
+        }
+
+        let blob: Blob;
+        let filename: string;
+        if (fav.kind === 'klipy') {
+          const format = getGifToSend(fav.gif);
+          if (!format?.url) return;
+          const resp = await fetch(format.url);
+          if (!resp.ok) return;
+          blob = await resp.blob();
+          filename = `${safeGifName(fav.gif.title || 'gif', 'gif')}.gif`;
+        } else if (fav.kind === 'mxc') {
+          const mediaUrl = mxcUrlToHttp(mx, fav.mxc, useAuthentication);
+          if (!mediaUrl) return;
+          if (fav.encInfo) {
+            const { encInfo } = fav;
+            blob = await downloadEncryptedMedia(mediaUrl, (encBuf) =>
+              decryptFile(encBuf, fav.info?.mimetype ?? 'image/gif', encInfo)
+            );
+          } else {
+            const resp = await fetch(mediaUrl);
+            if (!resp.ok) return;
+            blob = await resp.blob();
+          }
+          filename = /\.gif$/i.test(fav.body) ? fav.body : `${safeGifName(fav.body, 'gif')}.gif`;
+        } else {
+          const resp = await fetch(fav.videoUrl);
+          if (!resp.ok) return;
+          blob = await resp.blob();
+          filename = `${safeGifName(fav.title || 'gif', 'gif')}.mp4`;
+        }
+
+        const defaultType = fav.kind === 'url' ? 'video/mp4' : 'image/gif';
+        const file = new File([blob], filename, {
+          type: blob.type || defaultType,
         });
 
         const encData = room.hasEncryptionStateEvent() ? await encryptFile(file) : undefined;
@@ -504,23 +564,12 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           encInfo: encData?.encInfo,
           metadata: { markedAsSpoiler: false },
         };
-        const content = await getImageMsgContent(mx, item, mxc);
+        const content =
+          fav.kind === 'url'
+            ? await getVideoMsgContent(mx, item, mxc)
+            : await getImageMsgContent(mx, item, mxc);
 
-        if (replyDraft) {
-          content['m.relates_to'] = {
-            'm.in_reply_to': {
-              event_id: replyDraft.eventId,
-            },
-          };
-          if (replyDraft.relation?.rel_type === RelationType.Thread) {
-            content['m.relates_to'].event_id = replyDraft.relation.event_id;
-            content['m.relates_to'].rel_type = RelationType.Thread;
-            content['m.relates_to'].is_falling_back = false;
-          }
-        }
-
-        mx.sendMessage(roomId, content as any);
-        if (replyDraft) setReplyDraft(undefined);
+        sendGifContent(content);
       } catch (e) {
         console.error('Failed to send GIF', e);
       }

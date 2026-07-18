@@ -32,6 +32,7 @@ import React, {
 } from 'react';
 import FocusTrap from 'focus-trap-react';
 import { useHover, useFocusWithin } from 'react-aria';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { MatrixEvent, Room } from 'matrix-js-sdk';
 import { EventStatus } from 'matrix-js-sdk/lib/models/event-status';
 import { Relations } from 'matrix-js-sdk/lib/models/relations';
@@ -80,6 +81,12 @@ import { MemberPowerTag, StateEvent } from '../../../../types/matrix/room';
 import { PowerIcon } from '../../../components/power';
 import colorMXID from '../../../../util/colorMXID';
 import { getPowerTagIconSrc } from '../../../hooks/useMemberPowerTag';
+import {
+  getEventFavoriteGif,
+  getFavoriteGifId,
+  gifFavoritesAtom,
+  toggleGifFavoriteAtom,
+} from '../../../state/gifFavorites';
 
 export type ReactionHandler = (keyOrMxc: string, shortcode: string) => void;
 
@@ -345,6 +352,42 @@ export const MessageCopyLinkItem = as<
     >
       <Text className={css.MessageMenuItemText} as="span" size="T300" truncate>
         Copy Link
+      </Text>
+    </MenuItem>
+  );
+});
+
+export const MessageFavoriteGifItem = as<
+  'button',
+  {
+    mEvent: MatrixEvent;
+    onClose?: () => void;
+  }
+>(({ mEvent, onClose, ...props }, ref) => {
+  const favorites = useAtomValue(gifFavoritesAtom);
+  const toggleFavorite = useSetAtom(toggleGifFavoriteAtom);
+
+  const fav = getEventFavoriteGif(mEvent);
+  if (!fav) return null;
+
+  const favorited = favorites.some((f) => f.id === getFavoriteGifId(fav));
+
+  const handleToggle = () => {
+    toggleFavorite(fav);
+    onClose?.();
+  };
+
+  return (
+    <MenuItem
+      size="300"
+      after={<Icon size="100" src={Icons.Star} filled={favorited} />}
+      radii="300"
+      onClick={handleToggle}
+      {...props}
+      ref={ref}
+    >
+      <Text className={css.MessageMenuItemText} as="span" size="T300" truncate>
+        {favorited ? 'Remove GIF Favourite' : 'Favourite GIF'}
       </Text>
     </MenuItem>
   );
@@ -799,9 +842,7 @@ export const Message = as<'div', MessageProps>(
             hour24Clock={hour24Clock}
             dateFormatString={dateFormatString}
           />
-          {isSending && (
-            <Icon className={css.MessageStatusSending} size="100" src={Icons.Clock} />
-          )}
+          {isSending && <Icon className={css.MessageStatusSending} size="100" src={Icons.Clock} />}
         </Box>
       </Box>
     );
@@ -1138,6 +1179,7 @@ export const Message = as<'div', MessageProps>(
                               onClose={closeMenu}
                             />
                           )}
+                          <MessageFavoriteGifItem mEvent={mEvent} onClose={closeMenu} />
                           <MessageCopyLinkItem room={room} mEvent={mEvent} onClose={closeMenu} />
                           {canPinEvent && (
                             <MessagePinItem room={room} mEvent={mEvent} onClose={closeMenu} />

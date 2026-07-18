@@ -53,7 +53,7 @@ import {
 import { EmojiBoardTab, EmojiType } from './types';
 import { VirtualTile } from '../virtualizer';
 import { GifPicker } from './GifPicker';
-import { KlipyGif } from '../../utils/klipy';
+import { FavoriteGif } from '../../state/gifFavorites';
 
 const RECENT_GROUP_ID = 'recent_group';
 const SEARCH_GROUP_ID = 'search_group';
@@ -362,7 +362,7 @@ type EmojiBoardProps = {
   onEmojiSelect?: (unicode: string, shortcode: string) => void;
   onCustomEmojiSelect?: (mxc: string, shortcode: string) => void;
   onStickerSelect?: (mxc: string, shortcode: string, label: string) => void;
-  onGifSelect?: (gif: KlipyGif) => void;
+  onGifSelect?: (fav: FavoriteGif) => void;
   allowTextCustomEmoji?: boolean;
   addToRecentEmoji?: boolean;
 };
