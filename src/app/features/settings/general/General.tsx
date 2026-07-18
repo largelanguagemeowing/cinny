@@ -1011,6 +1011,23 @@ function Spaces() {
   );
 }
 
+function Permissions() {
+  const [spaceRoleMode, setSpaceRoleMode] = useSetting(settingsAtom, 'spaceRoleMode');
+
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Permissions</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Discord-style Permissions"
+          description="Hide room role customization and apply profile role changes to the current space."
+          after={<Switch variant="Primary" value={spaceRoleMode} onChange={setSpaceRoleMode} />}
+        />
+      </SequenceCard>
+    </Box>
+  );
+}
+
 function Sidebar() {
   const [showPresenceInMemberList, setShowPresenceInMemberList] = useSetting(
     settingsAtom,
@@ -1067,6 +1084,7 @@ export function General({ requestClose }: GeneralProps) {
               <Sidebar />
               <Messages />
               <Spaces />
+              <Permissions />
             </Box>
           </PageContent>
         </Scroll>
