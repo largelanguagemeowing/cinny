@@ -39,7 +39,7 @@ import {
   NavLink,
 } from '../../../components/nav';
 import { getSpaceLobbyPath, getSpaceRoomPath, getSpaceSearchPath } from '../../pathUtils';
-import { getCanonicalAliasOrRoomId, isRoomAlias } from '../../../utils/matrix';
+import { getCanonicalAliasOrRoomId, isRoomAlias, rateLimitedActions } from '../../../utils/matrix';
 import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
 import {
   useSpaceLobbySelected,
@@ -63,7 +63,7 @@ import {
 import { RoomSortMode } from '../../../../types/matrix/accountData';
 import { allRoomsAtom } from '../../../state/room-list/roomList';
 import { PageNav, PageNavContent, PageNavHeader } from '../../../components/page';
-import { usePowerLevels } from '../../../hooks/usePowerLevels';
+import { usePowerLevels, useRoomsPowerLevels } from '../../../hooks/usePowerLevels';
 import { useRecursiveChildScopeFactory, useSpaceChildren } from '../../../state/hooks/roomList';
 import { roomToParentsAtom } from '../../../state/room/roomToParents';
 import { markAsRead } from '../../../utils/notifications';
@@ -86,13 +86,14 @@ import {
 import { SpaceNotificationModeSwitcher } from '../../../components/SpaceNotificationSwitcher';
 import { useOpenSpaceSettings } from '../../../state/hooks/spaceSettings';
 import { useRoomNavigate } from '../../../hooks/useRoomNavigate';
-import { useRoomCreators } from '../../../hooks/useRoomCreators';
-import { useRoomPermissions } from '../../../hooks/useRoomPermissions';
+import { getRoomCreatorsForRoomId, useRoomCreators } from '../../../hooks/useRoomCreators';
+import { getRoomPermissionsAPI, useRoomPermissions } from '../../../hooks/useRoomPermissions';
 import { ContainerColor } from '../../../styles/ContainerColor.css';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { BreakWord } from '../../../styles/Text.css';
 import { InviteUserPrompt } from '../../../components/invite-user-prompt';
 import { useCallEmbed } from '../../../hooks/useCallEmbed';
+import { ASCIILexicalTable, orderKeys } from '../../../utils/ASCIILexicalTable';
 
 type SpaceMenuProps = {
   room: Room;
@@ -490,6 +491,7 @@ export function Space() {
   const allRooms = useAtomValue(allRoomsAtom);
   const allJoinedRooms = useMemo(() => new Set(allRooms), [allRooms]);
   const notificationPreferences = useRoomsNotificationPreferencesContext();
+  const lex = useMemo(() => new ASCIILexicalTable(' '.charCodeAt(0), '~'.charCodeAt(0), 6), []);
 
   const tombstoneEvent = useStateEvent(space, StateEvent.RoomTombstone);
   const selectedRoomId = useSelectedRoom();
@@ -537,18 +539,79 @@ export function Space() {
     customOrders
   );
 
-  const handleReorder = useCallback(
-    (parentId: string, fromRoomId: string, toRoomId: string) => {
-      const sectionRooms = hierarchy
-        .filter((i) => !('space' in i) && i.parentId === parentId)
-        .map((i) => i.roomId);
-      const filtered = sectionRooms.filter((rid) => rid !== fromRoomId);
-      const toIndex = filtered.indexOf(toRoomId);
-      if (toIndex === -1) return;
-      filtered.splice(toIndex, 0, fromRoomId);
-      reorderRoom(parentId, filtered);
+  const parentRooms = useMemo(
+    () =>
+      hierarchy
+        .filter((item) => 'space' in item)
+        .map((item) => getRoom(item.roomId))
+        .filter((room): room is Room => room !== undefined),
+    [hierarchy, getRoom]
+  );
+  const roomsPowerLevels = useRoomsPowerLevels(parentRooms);
+
+  const canReorderInParent = useCallback(
+    (parentId: string): boolean => {
+      if (sortMode === 'custom') return true;
+
+      const powerLevels = roomsPowerLevels.get(parentId);
+      if (!powerLevels || !getRoom(parentId)) return false;
+
+      const creators = getRoomCreatorsForRoomId(mx, parentId);
+      const permissions = getRoomPermissionsAPI(creators, powerLevels);
+      return permissions.stateEvent(StateEvent.SpaceChild, mx.getSafeUserId());
     },
-    [hierarchy, reorderRoom]
+    [mx, getRoom, roomsPowerLevels, sortMode]
+  );
+
+  const [reorderState, handleReorder] = useAsyncCallback(
+    useCallback(
+      async (parentId: string, fromRoomId: string, toRoomId: string) => {
+        const sectionRooms = hierarchy.filter(
+          (item) => !('space' in item) && item.parentId === parentId
+        );
+        const orderedRoomIds = sectionRooms.map((item) => item.roomId);
+        const filtered = orderedRoomIds.filter((roomId) => roomId !== fromRoomId);
+        const toIndex = filtered.indexOf(toRoomId);
+        if (toIndex === -1) return;
+        filtered.splice(toIndex, 0, fromRoomId);
+
+        if (sortMode === 'custom') {
+          reorderRoom(parentId, filtered);
+          return;
+        }
+
+        if (!canReorderInParent(parentId)) return;
+
+        const itemByRoomId = new Map(sectionRooms.map((item) => [item.roomId, item]));
+        const reorderedItems = filtered.flatMap((roomId) => {
+          const item = itemByRoomId.get(roomId);
+          return item ? [item] : [];
+        });
+        const currentOrders = reorderedItems.map((item) => {
+          if (item.roomId === fromRoomId) return undefined;
+          if (typeof item.content.order === 'string' && lex.has(item.content.order)) {
+            return item.content.order;
+          }
+          return undefined;
+        });
+        const newOrders = orderKeys(lex, currentOrders);
+        if (!newOrders) return;
+
+        const reorders = newOrders
+          .map((orderKey, index) => ({ item: reorderedItems[index], orderKey }))
+          .filter(({ orderKey }, index) => orderKey !== currentOrders[index]);
+
+        await rateLimitedActions(reorders, ({ item, orderKey }) =>
+          mx.sendStateEvent(
+            parentId,
+            StateEvent.SpaceChild as any,
+            { ...item.content, order: orderKey },
+            item.roomId
+          )
+        );
+      },
+      [mx, hierarchy, sortMode, reorderRoom, canReorderInParent, lex]
+    )
   );
 
   const virtualizer = useVirtualizer({
@@ -663,6 +726,10 @@ export function Space() {
                         )}
                         parentId={parentId}
                         onReorder={handleReorder}
+                        canReorder={
+                          reorderState.status !== AsyncStatus.Loading &&
+                          canReorderInParent(parentId)
+                        }
                       />
                     );
                   })()}

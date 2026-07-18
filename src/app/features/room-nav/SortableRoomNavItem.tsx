@@ -12,6 +12,7 @@ type SortableRoomNavItemProps = {
   showAvatar?: boolean;
   direct?: boolean;
   parentId: string;
+  canReorder: boolean;
   onReorder: (parentId: string, fromRoomId: string, toRoomId: string) => void;
 };
 
@@ -29,6 +30,7 @@ export function SortableRoomNavItem({
   showAvatar,
   direct,
   parentId,
+  canReorder,
   onReorder,
 }: SortableRoomNavItemProps) {
   const [dragging, setDragging] = useState(false);
@@ -74,7 +76,7 @@ export function SortableRoomNavItem({
       className={SortableNavItem}
       data-dragging={dragging}
       data-drop-target={dropTarget ? 'before' : undefined}
-      draggable
+      draggable={canReorder}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
