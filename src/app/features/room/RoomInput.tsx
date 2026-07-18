@@ -74,6 +74,7 @@ import { useFilePicker } from '../../hooks/useFilePicker';
 import { useFilePasteHandler } from '../../hooks/useFilePasteHandler';
 import { useFileDropZone } from '../../hooks/useFileDrop';
 import {
+  IReplyDraft,
   TUploadItem,
   TUploadMetadata,
   roomIdToMsgDraftAtomFamily,
@@ -124,6 +125,23 @@ import { useTheme } from '../../hooks/useTheme';
 import { useRoomCreatorsTag } from '../../hooks/useRoomCreatorsTag';
 import { usePowerLevelTags } from '../../hooks/usePowerLevelTags';
 import { useComposingCheck } from '../../hooks/useComposingCheck';
+
+const addReplyRelation = (content: IContent, replyDraft?: IReplyDraft): IContent => {
+  if (!replyDraft) return content;
+
+  const relation: IContent = {
+    'm.in_reply_to': {
+      event_id: replyDraft.eventId,
+    },
+  };
+  if (replyDraft.relation?.rel_type === RelationType.Thread) {
+    relation.event_id = replyDraft.relation.event_id;
+    relation.rel_type = RelationType.Thread;
+    relation.is_falling_back = false;
+  }
+
+  return { ...content, 'm.relates_to': relation };
+};
 
 interface RoomInputProps {
   editor: Editor;
@@ -380,19 +398,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
         content.format = 'org.matrix.custom.html';
         content.formatted_body = formattedBody;
       }
-      if (replyDraft) {
-        content['m.relates_to'] = {
-          'm.in_reply_to': {
-            event_id: replyDraft.eventId,
-          },
-        };
-        if (replyDraft.relation?.rel_type === RelationType.Thread) {
-          content['m.relates_to'].event_id = replyDraft.relation.event_id;
-          content['m.relates_to'].rel_type = RelationType.Thread;
-          content['m.relates_to'].is_falling_back = false;
-        }
-      }
-      mx.sendMessage(roomId, content as any);
+      mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any);
       resetEditor(editor);
       resetEditorHistory(editor);
       setReplyDraft(undefined);
@@ -470,30 +476,20 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
         await getImageUrlBlob(stickerUrl)
       );
 
-      mx.sendEvent(roomId, EventType.Sticker, {
+      const content: IContent = {
         body: label,
         url: mxc,
         info,
-      });
+      };
+      mx.sendEvent(roomId, EventType.Sticker, addReplyRelation(content, replyDraft));
+      setReplyDraft(undefined);
     };
 
     const handleGifSelect = async (fav: FavoriteGif) => {
       const sendGifContent = (content: IContent) => {
-        const finalContent: IContent = { ...content };
-        if (replyDraft) {
-          finalContent['m.relates_to'] = {
-            'm.in_reply_to': {
-              event_id: replyDraft.eventId,
-            },
-          };
-          if (replyDraft.relation?.rel_type === RelationType.Thread) {
-            finalContent['m.relates_to'].event_id = replyDraft.relation.event_id;
-            finalContent['m.relates_to'].rel_type = RelationType.Thread;
-            finalContent['m.relates_to'].is_falling_back = false;
-          }
-        }
+        const finalContent = addReplyRelation(content, replyDraft);
         mx.sendMessage(roomId, finalContent as any);
-        if (replyDraft) setReplyDraft(undefined);
+        setReplyDraft(undefined);
       };
 
       const safeGifName = (name: string, fallback: string) =>
