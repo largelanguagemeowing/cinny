@@ -1,12 +1,14 @@
 import { ReactEventHandler, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAtomValue } from 'jotai';
 import { useRoomNavigate } from './useRoomNavigate';
 import { useMatrixClient } from './useMatrixClient';
 import { isRoomId, isUserId } from '../utils/matrix';
-import { getHomeRoomPath, withSearchParam } from '../pages/pathUtils';
+import { getHomeRoomPath, getRoomsRoomPath, withSearchParam } from '../pages/pathUtils';
 import { _RoomSearchParams } from '../pages/paths';
 import { useOpenUserRoomProfile } from '../state/hooks/userRoomProfile';
 import { useSpaceOptionally } from './useSpace';
+import { mDirectAtom } from '../state/mDirectList';
 
 export const useMentionClickHandler = (roomId: string): ReactEventHandler<HTMLElement> => {
   const mx = useMatrixClient();
@@ -14,6 +16,7 @@ export const useMentionClickHandler = (roomId: string): ReactEventHandler<HTMLEl
   const navigate = useNavigate();
   const openProfile = useOpenUserRoomProfile();
   const space = useSpaceOptionally();
+  const mDirects = useAtomValue(mDirectAtom);
 
   const handleClick: ReactEventHandler<HTMLElement> = useCallback(
     (evt) => {
@@ -36,11 +39,13 @@ export const useMentionClickHandler = (roomId: string): ReactEventHandler<HTMLEl
       }
 
       const viaServers = target.getAttribute('data-mention-via') || undefined;
-      const path = getHomeRoomPath(mentionId, eventId);
+      const path = mDirects.has(mentionId)
+        ? getHomeRoomPath(mentionId, eventId)
+        : getRoomsRoomPath(mentionId, eventId);
 
       navigate(viaServers ? withSearchParam<_RoomSearchParams>(path, { viaServers }) : path);
     },
-    [mx, navigate, navigateRoom, navigateSpace, roomId, space, openProfile]
+    [mx, navigate, navigateRoom, navigateSpace, roomId, space, openProfile, mDirects]
   );
 
   return handleClick;

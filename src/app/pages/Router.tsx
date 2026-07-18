@@ -18,6 +18,7 @@ import {
   INBOX_PATH,
   REGISTER_PATH,
   RESET_PASSWORD_PATH,
+  ROOMS_PATH,
   SPACE_PATH,
   _CREATE_PATH,
   _FEATURED_PATH,
@@ -41,6 +42,7 @@ import {
 } from './pathUtils';
 import { ClientBindAtoms, ClientLayout, ClientRoot } from './client';
 import { Home, HomeRouteRoomProvider, HomeSearch } from './client/home';
+import { Rooms, RoomsRouteRoomProvider, RoomsSearch } from './client/rooms';
 import { Direct, DirectCreate, DirectRouteRoomProvider } from './client/direct';
 import { RouteSpaceProvider, Space, SpaceRouteRoomProvider, SpaceSearch } from './client/space';
 import { Explore, FeaturedRooms, PublicRooms } from './client/explore';
@@ -178,6 +180,32 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
               <HomeRouteRoomProvider>
                 <Room />
               </HomeRouteRoomProvider>
+            }
+          />
+        </Route>
+        <Route
+          path={ROOMS_PATH}
+          element={
+            <PageRoot
+              nav={
+                <MobileFriendlyPageNav path={ROOMS_PATH}>
+                  <Rooms />
+                </MobileFriendlyPageNav>
+              }
+            >
+              <Outlet />
+            </PageRoot>
+          }
+        >
+          {mobile ? null : <Route index element={<WelcomePage />} />}
+          <Route path={_CREATE_PATH} element={<HomeCreateRoom />} />
+          <Route path={_SEARCH_PATH} element={<RoomsSearch />} />
+          <Route
+            path={_ROOM_PATH}
+            element={
+              <RoomsRouteRoomProvider>
+                <Room />
+              </RoomsRouteRoomProvider>
             }
           />
         </Route>

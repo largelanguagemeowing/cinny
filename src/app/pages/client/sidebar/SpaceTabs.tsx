@@ -96,6 +96,7 @@ import { useRoomPermissions } from '../../../hooks/useRoomPermissions';
 import { InviteUserPrompt } from '../../../components/invite-user-prompt';
 import { useRoomsNotificationPreferencesContext } from '../../../hooks/useRoomsNotificationPreferences';
 import { SpaceNotificationModeSwitcher } from '../../../components/SpaceNotificationSwitcher';
+import { RoomsTab } from './RoomsTab';
 
 type SpaceMenuProps = {
   room: Room;
@@ -822,11 +823,11 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
     [mx, sidebarItems, orphanSpaces, localEchoSidebarItem]
   );
 
-  if (sidebarItems.length === 0) return null;
   return (
     <>
       <SidebarStackSeparator />
       <SidebarStack>
+        <RoomsTab />
         {sidebarItems.map((item) => {
           if (typeof item === 'object') {
             if (openedFolder.has(item.id)) {

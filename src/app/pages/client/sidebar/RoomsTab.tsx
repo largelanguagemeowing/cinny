@@ -5,7 +5,7 @@ import { useAtomValue } from 'jotai';
 import FocusTrap from 'focus-trap-react';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
-import { getHomePath, joinPathComponent } from '../../pathUtils';
+import { getRoomsPath, joinPathComponent } from '../../pathUtils';
 import { useRoomsUnread } from '../../../state/hooks/unread';
 import {
   SidebarAvatar,
@@ -13,29 +13,28 @@ import {
   SidebarItemBadge,
   SidebarItemTooltip,
 } from '../../../components/sidebar';
-import { useHomeSelected } from '../../../hooks/router/useHomeSelected';
-import { useDirectSelected } from '../../../hooks/router/useDirectSelected';
+import { useRoomsSelected } from '../../../hooks/router/useRoomsSelected';
 import { UnreadBadge } from '../../../components/unread-badge';
 import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { useNavToActivePathAtom } from '../../../state/hooks/navToActivePath';
-import { useDirectRooms } from '../direct/useDirectRooms';
+import { useHomeRooms } from '../home/useHomeRooms';
 import { markAsRead } from '../../../utils/notifications';
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 
-type HomeMenuProps = {
+type RoomsMenuProps = {
   requestClose: () => void;
 };
-const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, ref) => {
-  const directs = useDirectRooms();
+const RoomsMenu = forwardRef<HTMLDivElement, RoomsMenuProps>(({ requestClose }, ref) => {
+  const orphanRooms = useHomeRooms();
   const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
-  const unread = useRoomsUnread(directs, roomToUnreadAtom);
+  const unread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
   const mx = useMatrixClient();
 
   const handleMarkAsRead = () => {
     if (!unread) return;
-    directs.forEach((rId) => markAsRead(mx, rId, hideActivity));
+    orphanRooms.forEach((rId) => markAsRead(mx, rId, hideActivity));
     requestClose();
   };
 
@@ -58,26 +57,24 @@ const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, re
   );
 });
 
-export function HomeTab() {
+export function RoomsTab() {
   const navigate = useNavigate();
   const screenSize = useScreenSizeContext();
   const navToActivePath = useAtomValue(useNavToActivePathAtom());
 
-  const directs = useDirectRooms();
-  const unread = useRoomsUnread(directs, roomToUnreadAtom);
-  const homeSelected = useHomeSelected();
-  const directSelected = useDirectSelected();
-  const selected = homeSelected || directSelected;
+  const orphanRooms = useHomeRooms();
+  const unread = useRoomsUnread(orphanRooms, roomToUnreadAtom);
+  const selected = useRoomsSelected();
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
-  const handleHomeClick = () => {
-    const homeActivePath = navToActivePath.get('home');
-    if (homeActivePath && screenSize !== ScreenSize.Mobile) {
-      navigate(joinPathComponent(homeActivePath));
+  const handleRoomsClick = () => {
+    const roomsActivePath = navToActivePath.get('rooms');
+    if (roomsActivePath && screenSize !== ScreenSize.Mobile) {
+      navigate(joinPathComponent(roomsActivePath));
       return;
     }
 
-    navigate(getHomePath());
+    navigate(getRoomsPath());
   };
 
   const handleContextMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -91,16 +88,16 @@ export function HomeTab() {
 
   return (
     <SidebarItem active={selected}>
-      <SidebarItemTooltip tooltip="Home">
+      <SidebarItemTooltip tooltip="Rooms">
         {(triggerRef) => (
           <SidebarAvatar
             as="button"
             ref={triggerRef}
             outlined
-            onClick={handleHomeClick}
+            onClick={handleRoomsClick}
             onContextMenu={handleContextMenu}
           >
-            <Icon src={Icons.Home} filled={selected} />
+            <Icon src={Icons.Hash} filled={selected} />
           </SidebarAvatar>
         )}
       </SidebarItemTooltip>
@@ -126,7 +123,7 @@ export function HomeTab() {
                 escapeDeactivates: stopPropagation,
               }}
             >
-              <HomeMenu requestClose={() => setMenuAnchor(undefined)} />
+              <RoomsMenu requestClose={() => setMenuAnchor(undefined)} />
             </FocusTrap>
           }
         />
