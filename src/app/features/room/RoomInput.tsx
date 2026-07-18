@@ -1,4 +1,5 @@
 import React, {
+  CSSProperties,
   KeyboardEventHandler,
   RefObject,
   forwardRef,
@@ -125,6 +126,15 @@ import { useTheme } from '../../hooks/useTheme';
 import { useRoomCreatorsTag } from '../../hooks/useRoomCreatorsTag';
 import { usePowerLevelTags } from '../../hooks/usePowerLevelTags';
 import { useComposingCheck } from '../../hooks/useComposingCheck';
+
+const gifIconStyles: CSSProperties = {
+  border: '1.5px solid currentColor',
+  borderRadius: toRem(3),
+  fontSize: toRem(9),
+  fontWeight: 700,
+  lineHeight: 1,
+  padding: `${toRem(3)} ${toRem(2)}`,
+};
 
 const addReplyRelation = (content: IContent, replyDraft?: IReplyDraft): IContent => {
   if (!replyDraft) return content;
@@ -254,13 +264,13 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
     const pickFile = useFilePicker(handleFiles, true);
     const handlePaste = useFilePasteHandler(handleFiles);
     const dropZoneVisible = useFileDropZone(fileDropContainerRef, handleFiles);
-    const [hideStickerBtn, setHideStickerBtn] = useState(document.body.clientWidth < 500);
+    const [hideExtraPickerBtns, setHideExtraPickerBtns] = useState(document.body.clientWidth < 500);
 
     const isComposing = useComposingCheck();
 
     useElementSizeObserver(
       useCallback(() => fileDropContainerRef.current, [fileDropContainerRef]),
-      useCallback((width) => setHideStickerBtn(width < 500), [])
+      useCallback((width) => setHideExtraPickerBtns(width < 500), [])
     );
 
     useEffect(() => {
@@ -762,24 +772,40 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
                       />
                     }
                   >
-                    {!hideStickerBtn && (
-                      <IconButton
-                        aria-pressed={emojiBoardTab === EmojiBoardTab.Sticker}
-                        onClick={() => setEmojiBoardTab(EmojiBoardTab.Sticker)}
-                        variant="SurfaceVariant"
-                        size="300"
-                        radii="300"
-                      >
-                        <Icon
-                          src={Icons.Sticker}
-                          filled={emojiBoardTab === EmojiBoardTab.Sticker}
-                        />
-                      </IconButton>
+                    {!hideExtraPickerBtns && (
+                      <>
+                        <IconButton
+                          aria-label="Open GIF picker"
+                          aria-pressed={emojiBoardTab === EmojiBoardTab.Gif}
+                          onClick={() => setEmojiBoardTab(EmojiBoardTab.Gif)}
+                          variant="SurfaceVariant"
+                          size="300"
+                          radii="300"
+                        >
+                          <span style={gifIconStyles}>GIF</span>
+                        </IconButton>
+                        <IconButton
+                          aria-label="Open sticker picker"
+                          aria-pressed={emojiBoardTab === EmojiBoardTab.Sticker}
+                          onClick={() => setEmojiBoardTab(EmojiBoardTab.Sticker)}
+                          variant="SurfaceVariant"
+                          size="300"
+                          radii="300"
+                        >
+                          <Icon
+                            src={Icons.Sticker}
+                            filled={emojiBoardTab === EmojiBoardTab.Sticker}
+                          />
+                        </IconButton>
+                      </>
                     )}
                     <IconButton
                       ref={emojiBtnRef}
+                      aria-label="Open emoji picker"
                       aria-pressed={
-                        hideStickerBtn ? !!emojiBoardTab : emojiBoardTab === EmojiBoardTab.Emoji
+                        hideExtraPickerBtns
+                          ? !!emojiBoardTab
+                          : emojiBoardTab === EmojiBoardTab.Emoji
                       }
                       onClick={() => setEmojiBoardTab(EmojiBoardTab.Emoji)}
                       variant="SurfaceVariant"
@@ -789,7 +815,9 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
                       <Icon
                         src={Icons.Smile}
                         filled={
-                          hideStickerBtn ? !!emojiBoardTab : emojiBoardTab === EmojiBoardTab.Emoji
+                          hideExtraPickerBtns
+                            ? !!emojiBoardTab
+                            : emojiBoardTab === EmojiBoardTab.Emoji
                         }
                       />
                     </IconButton>
