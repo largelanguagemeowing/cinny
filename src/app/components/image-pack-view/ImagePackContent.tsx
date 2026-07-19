@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { as, Box, Text, config, Button, Menu, Spinner } from 'folds';
+import { as, Box, Text, config, Button, Menu, Spinner, Icon, Icons, IconButton } from 'folds';
 import {
   ImagePack,
   ImageUsage,
@@ -9,6 +9,7 @@ import {
   packMetaEqual,
   PackMetaReader,
 } from '../../plugins/custom-emoji';
+import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { SequenceCard } from '../sequence-card';
 import { ImageTile, ImageTileEdit, ImageTileUpload } from './ImageTile';
@@ -24,6 +25,7 @@ import { getImageFileUrl, loadImageElement, renameFile } from '../../utils/dom';
 import { replaceSpaceWithDash, suffixRename } from '../../utils/common';
 import { getFileNameWithoutExt } from '../../utils/mimeTypes';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
+import { downloadImagePackZip } from '../../utils/zip';
 
 export type ImagePackContentProps = {
   imagePack: ImagePack;
@@ -33,6 +35,7 @@ export type ImagePackContentProps = {
 
 export const ImagePackContent = as<'div', ImagePackContentProps>(
   ({ imagePack, canEdit, onUpdate, ...props }, ref) => {
+    const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
 
     const [metaEditing, setMetaEditing] = useState(false);
@@ -183,6 +186,15 @@ export const ImagePackContent = as<'div', ImagePackContentProps>(
       setDeleteImages(new Set());
     };
 
+    const [zipState, downloadZip] = useAsyncCallback(
+      useCallback(
+        () => downloadImagePackZip(mx, useAuthentication, imagePack),
+        [mx, useAuthentication, imagePack]
+      )
+    );
+    const downloadingZip = zipState.status === AsyncStatus.Loading;
+    const zipError = zipState.status === AsyncStatus.Error;
+
     const [applyState, applyChanges] = useAsyncCallback(
       useCallback(async () => {
         const pack: PackContent = {
@@ -290,7 +302,7 @@ export const ImagePackContent = as<'div', ImagePackContentProps>(
           </Menu>
         )}
         <Box direction="Column" gap="100">
-          <Text size="L400">Pack</Text>
+          <Text size="L400">Set</Text>
           <SequenceCard
             style={{ padding: config.space.S300 }}
             variant="SurfaceVariant"
@@ -332,7 +344,28 @@ export const ImagePackContent = as<'div', ImagePackContentProps>(
         </Box>
         {images.length === 0 && !canEdit ? null : (
           <Box direction="Column" gap="100">
-            <Text size="L400">Images</Text>
+            <Box alignItems="Center" gap="200">
+              <Box grow="Yes">
+                <Text size="L400">Images</Text>
+              </Box>
+              {images.length > 0 && (
+                <IconButton
+                  size="300"
+                  radii="300"
+                  variant={zipError ? 'Critical' : 'SurfaceVariant'}
+                  onClick={downloadZip}
+                  disabled={downloadingZip}
+                  title="Download all images as a zip"
+                  aria-label="Download all images as a zip"
+                >
+                  {downloadingZip ? (
+                    <Spinner size="100" variant={zipError ? 'Critical' : 'Secondary'} />
+                  ) : (
+                    <Icon size="100" src={Icons.Download} />
+                  )}
+                </IconButton>
+              )}
+            </Box>
             {canEdit && (
               <SequenceCard
                 style={{ padding: config.space.S300 }}
@@ -342,7 +375,7 @@ export const ImagePackContent = as<'div', ImagePackContentProps>(
               >
                 <SettingTile
                   title="Upload Images"
-                  description="Select images from your storage to upload them in pack."
+                  description="Select images from your storage to upload them in set."
                   after={
                     <Button
                       variant="Secondary"
