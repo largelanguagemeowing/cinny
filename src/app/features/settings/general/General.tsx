@@ -344,7 +344,7 @@ function Appearance() {
       <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
         <SettingTile
           title="Low Animation Mode"
-          description="Disable non-essential animations. Media and GIFs only autoplay on hover."
+          description="Disable non-essential animations. Videos only autoplay on hover."
           after={
             <Switch variant="Primary" value={lowAnimationMode} onChange={setLowAnimationMode} />
           }

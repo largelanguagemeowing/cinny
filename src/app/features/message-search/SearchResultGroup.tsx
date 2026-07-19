@@ -28,7 +28,7 @@ import {
   UsernameBold,
 } from '../../components/message';
 import { RenderMessageContent } from '../../components/RenderMessageContent';
-import { PausableImage } from '../../components/media';
+import { Image } from '../../components/media';
 import { ImageViewer } from '../../components/image-viewer';
 import * as customHtmlCss from '../../styles/CustomHtml.css';
 import { RoomAvatar, RoomIcon } from '../../components/room-avatar';
@@ -153,7 +153,7 @@ export function SearchResultGroup({
               <ImageContent
                 {...props}
                 autoPlay={mediaAutoLoad}
-                renderImage={(p) => <PausableImage {...p} loading="lazy" />}
+                renderImage={(p) => <Image {...p} loading="lazy" />}
                 renderViewer={(p) => <ImageViewer {...p} />}
               />
             )}

@@ -27,7 +27,7 @@ import {
   VideoContent,
 } from './message';
 import { UrlPreviewCard, UrlPreviewHolder } from './url-preview';
-import { Image, MediaControl, PausableImage, Video } from './media';
+import { Image, MediaControl, Video } from './media';
 import { ImageViewer } from './image-viewer';
 import { PdfViewer } from './Pdf-viewer';
 import { TextViewer } from './text-viewer';
@@ -229,7 +229,7 @@ export function RenderMessageContent({
             <ImageContent
               {...props}
               autoPlay={mediaAutoLoad}
-              renderImage={(p) => <PausableImage {...p} loading="lazy" />}
+              renderImage={(p) => <Image {...p} loading="lazy" />}
               renderViewer={(p) => <ImageViewer {...p} />}
             />
           )}

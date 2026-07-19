@@ -65,7 +65,7 @@ import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 import * as customHtmlCss from '../../../styles/CustomHtml.css';
 import { EncryptedContent } from '../message';
-import { PausableImage } from '../../../components/media';
+import { Image } from '../../../components/media';
 import { ImageViewer } from '../../../components/image-viewer';
 import { useRoomNavigate } from '../../../hooks/useRoomNavigate';
 import { VirtualTile } from '../../../components/virtualizer';
@@ -366,7 +366,7 @@ export const RoomPinMenu = forwardRef<HTMLDivElement, RoomPinMenuProps>(
                         <ImageContent
                           {...props}
                           autoPlay={mediaAutoLoad}
-                          renderImage={(p) => <PausableImage {...p} loading="lazy" />}
+                          renderImage={(p) => <Image {...p} loading="lazy" />}
                           renderViewer={(p) => <ImageViewer {...p} />}
                         />
                       )}
@@ -420,7 +420,7 @@ export const RoomPinMenu = forwardRef<HTMLDivElement, RoomPinMenuProps>(
                 <ImageContent
                   {...props}
                   autoPlay={mediaAutoLoad}
-                  renderImage={(p) => <PausableImage {...p} loading="lazy" />}
+                  renderImage={(p) => <Image {...p} loading="lazy" />}
                   renderViewer={(p) => <ImageViewer {...p} />}
                 />
               )}

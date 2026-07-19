@@ -23,7 +23,6 @@ import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
 import { IImageInfo, MATRIX_BLUR_HASH_PROPERTY_NAME } from '../../../../types/matrix/common';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import * as css from './style.css';
 import { bytesToSize } from '../../../utils/common';
 import { FALLBACK_MIMETYPE } from '../../../utils/mimeTypes';
@@ -46,7 +45,6 @@ type RenderImageProps = {
   onError: () => void;
   onClick: () => void;
   tabIndex: number;
-  paused?: boolean;
 };
 export type ImageContentProps = {
   body: string;
@@ -81,9 +79,6 @@ export const ImageContent = as<'div', ImageContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
-    const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
-    const isAnimated = mimeType === 'image/gif';
-    const paused = lowAnimationMode && isAnimated && !hovered;
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -97,9 +92,12 @@ export const ImageContent = as<'div', ImageContentProps>(
     const maxRetries = 3;
     const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-    useEffect(() => () => {
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-    }, []);
+    useEffect(
+      () => () => {
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      },
+      []
+    );
 
     const [srcState, loadSrc] = useAsyncCallback(
       useCallback(async () => {
@@ -141,7 +139,7 @@ export const ImageContent = as<'div', ImageContentProps>(
     }, [autoPlayProp, loadSrc]);
 
     return (
-      <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
+      <Box className={classNames(css.RelativeBase, className)} {...props} ref={ref}>
         {srcState.status === AsyncStatus.Success && (
           <Overlay open={viewer} backdrop={<OverlayBackdrop />}>
             <OverlayCenter>
@@ -201,7 +199,6 @@ export const ImageContent = as<'div', ImageContentProps>(
               onError: handleError,
               onClick: () => setViewer(true),
               tabIndex: 0,
-              paused,
             })}
           </Box>
         )}
