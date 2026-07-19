@@ -32,7 +32,7 @@ export function TopBarProfile() {
     <>
       <Box className={css.Profile} alignItems="Center" gap="200" shrink="Yes">
         <Box shrink="No">
-          <Avatar size="300" radii="300">
+          <Avatar className={css.ProfileAvatar} size="300" radii="300">
             <UserAvatar
               userId={userId}
               src={avatarUrl}
