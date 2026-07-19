@@ -5,4 +5,5 @@ export * from './AudioContent';
 export * from './FileContent';
 export * from './FallbackContent';
 export * from './OoyeGifContent';
+export * from './MediaAutoEmbed';
 export * from './EventContent';

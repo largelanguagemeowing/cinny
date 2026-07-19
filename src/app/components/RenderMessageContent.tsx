@@ -2,7 +2,7 @@ import React from 'react';
 import { MsgType } from 'matrix-js-sdk';
 import { HTMLReactParserOptions } from 'html-react-parser';
 import { Opts } from 'linkifyjs';
-import { config } from 'folds';
+import { Box, config } from 'folds';
 import {
   AudioContent,
   DownloadFile,
@@ -14,6 +14,7 @@ import {
   MFile,
   MImage,
   MLocation,
+  MediaAutoEmbed,
   MNotice,
   MText,
   MVideo,
@@ -33,6 +34,7 @@ import { TextViewer } from './text-viewer';
 import { testMatrixTo } from '../plugins/matrix-to';
 import { parseOoyeGif } from '../utils/ooye';
 import { IImageContent } from '../../types/matrix/common';
+import { isMediaAutoEmbedUrl } from '../utils/mediaAutoEmbed';
 
 type RenderMessageContentProps = {
   displayName: string;
@@ -63,12 +65,25 @@ export function RenderMessageContent({
   const renderUrlsPreview = (urls: string[]) => {
     const filteredUrls = urls.filter((url) => !testMatrixTo(url));
     if (filteredUrls.length === 0) return undefined;
+    const mediaUrls = filteredUrls.filter(isMediaAutoEmbedUrl);
+    const previewUrls = filteredUrls.filter((url) => !isMediaAutoEmbedUrl(url));
     return (
-      <UrlPreviewHolder>
-        {filteredUrls.map((url) => (
-          <UrlPreviewCard key={url} url={url} ts={ts} />
-        ))}
-      </UrlPreviewHolder>
+      <>
+        {mediaUrls.length > 0 && (
+          <Box direction="Column" gap="200" style={{ marginTop: config.space.S200 }}>
+            {mediaUrls.map((url) => (
+              <MediaAutoEmbed key={url} url={url} autoLoad={mediaAutoLoad} />
+            ))}
+          </Box>
+        )}
+        {previewUrls.length > 0 && (
+          <UrlPreviewHolder>
+            {previewUrls.map((url) => (
+              <UrlPreviewCard key={url} url={url} ts={ts} />
+            ))}
+          </UrlPreviewHolder>
+        )}
+      </>
     );
   };
   const renderCaption = () => {
