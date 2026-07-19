@@ -29,7 +29,7 @@ async function cleanupDeadClients() {
   });
 }
 
-function setSession(clientId: string, accessToken: any, baseUrl: any) {
+function setSession(clientId: string, accessToken: unknown, baseUrl: unknown) {
   if (typeof accessToken === 'string' && typeof baseUrl === 'string') {
     sessions.set(clientId, { accessToken, baseUrl });
   } else {
@@ -46,17 +46,14 @@ function setSession(clientId: string, accessToken: any, baseUrl: any) {
 }
 
 function requestSession(client: Client): Promise<SessionInfo | undefined> {
-  const promise =
-    clientToSessionPromise.get(client.id) ??
-    new Promise((resolve) => {
+  let promise = clientToSessionPromise.get(client.id);
+  if (!promise) {
+    promise = new Promise((resolve) => {
       clientToResolve.set(client.id, resolve);
       client.postMessage({ type: 'requestSession' });
     });
-
-  if (!clientToSessionPromise.has(client.id)) {
     clientToSessionPromise.set(client.id, promise);
   }
-
   return promise;
 }
 
@@ -73,7 +70,16 @@ async function requestSessionWithTimeout(
     setTimeout(() => resolve(undefined), timeoutMs);
   });
 
-  return Promise.race([sessionPromise, timeout]);
+  const session = await Promise.race([sessionPromise, timeout]);
+
+  // On timeout, drop the pending request so the next fetch asks the client
+  // again instead of reusing a promise that may never resolve.
+  if (session === undefined && clientToSessionPromise.get(clientId) === sessionPromise) {
+    clientToResolve.delete(clientId);
+    clientToSessionPromise.delete(clientId);
+  }
+
+  return session;
 }
 
 self.addEventListener('install', () => {
@@ -127,11 +133,14 @@ function validMediaRequest(url: string, baseUrl: string): boolean {
   });
 }
 
-function fetchConfig(token: string): RequestInit {
+function fetchConfig(token: string, request: Request): RequestInit {
+  // Preserve the original request headers (notably Range, used for media
+  // seeking) and only add the Authorization header on top.
+  const headers = new Headers(request.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+
   return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     cache: 'default',
   };
 }
@@ -147,7 +156,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
   const session = sessions.get(clientId);
   if (session) {
     if (validMediaRequest(url, session.baseUrl)) {
-      event.respondWith(fetch(url, fetchConfig(session.accessToken)));
+      event.respondWith(fetch(url, fetchConfig(session.accessToken, event.request)));
     }
     return;
   }
@@ -155,7 +164,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
   event.respondWith(
     requestSessionWithTimeout(clientId).then((s) => {
       if (s && validMediaRequest(url, s.baseUrl)) {
-        return fetch(url, fetchConfig(s.accessToken));
+        return fetch(url, fetchConfig(s.accessToken, event.request));
       }
       return fetch(event.request);
     })
