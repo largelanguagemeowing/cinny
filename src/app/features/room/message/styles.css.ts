@@ -3,6 +3,10 @@ import { DefaultReset, config, toRem } from 'folds';
 
 export const MessageBase = style({
   position: 'relative',
+  transition: 'opacity 200ms ease-out',
+});
+export const MessageSending = style({
+  opacity: config.opacity.Disabled,
 });
 export const MessageBaseBubbleCollapsed = style({
   paddingTop: 0,

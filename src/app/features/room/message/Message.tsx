@@ -973,6 +973,7 @@ export const Message = as<'div', MessageProps>(
       <MessageBase
         className={classNames(css.MessageBase, className, {
           [css.MessageBaseBubbleCollapsed]: messageLayout === MessageLayout.Bubble && collapse,
+          [css.MessageSending]: isSending,
         })}
         tabIndex={0}
         space={messageSpacing}
