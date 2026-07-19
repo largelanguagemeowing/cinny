@@ -1,5 +1,5 @@
 import { globalStyle, style } from '@vanilla-extract/css';
-import { toRem } from 'folds';
+import { config, toRem } from 'folds';
 
 export const SearchForm = style({
   width: toRem(200),
@@ -8,6 +8,8 @@ export const SearchForm = style({
 export const Profile = style({
   minWidth: 0,
   maxWidth: toRem(240),
+  marginInlineStart: config.space.S100,
+  marginInlineEnd: config.space.S200,
 });
 
 export const ProfileText = style({
