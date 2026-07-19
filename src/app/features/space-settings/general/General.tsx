@@ -13,6 +13,7 @@ import {
 } from '../../common-settings/general';
 import { useRoomCreators } from '../../../hooks/useRoomCreators';
 import { useRoomPermissions } from '../../../hooks/useRoomPermissions';
+import { SpaceAutoJoin } from './SpaceAutoJoin';
 
 type GeneralProps = {
   requestClose: () => void;
@@ -48,6 +49,7 @@ export function General({ requestClose }: GeneralProps) {
                 <Text size="L400">Options</Text>
                 <RoomJoinRules permissions={permissions} />
                 <RoomPublish permissions={permissions} />
+                <SpaceAutoJoin permissions={permissions} />
               </Box>
               <Box direction="Column" gap="100">
                 <Text size="L400">Addresses</Text>

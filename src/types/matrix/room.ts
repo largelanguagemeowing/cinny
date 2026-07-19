@@ -40,6 +40,7 @@ export enum StateEvent {
 
   PoniesRoomEmotes = 'im.ponies.room_emotes',
   PowerLevelTags = 'in.cinny.room.power_level_tags',
+  SpaceAutoJoin = 'im.kibby.space.auto_join',
 }
 
 export enum MessageEvent {
@@ -59,6 +60,10 @@ export type MSpaceChildContent = {
   via: string[];
   suggested?: boolean;
   order?: string;
+};
+
+export type SpaceAutoJoinContent = {
+  auto_join?: boolean;
 };
 
 export enum NotificationType {
