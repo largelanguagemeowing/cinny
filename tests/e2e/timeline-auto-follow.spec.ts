@@ -1,18 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const HOMESERVER = 'matrix.unredacted.org';
-const USERNAME = 'tezstjidhsfd';
-const PASSWORD = 'tezstjidhsfd1337';
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://cinny.k8s.mreow.de';
 const ROOM_ID = '!SSZyjqjwolfGYGY6z-4HW4bmdhIW6vnZSN1qgLzxlH0';
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login/${HOMESERVER}`);
-  await page.locator('input[name="usernameInput"]').fill(USERNAME);
-  await page.locator('input[name="passwordInput"]').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL(/\/(home|%23space)/, { timeout: 30_000 });
-}
 
 async function getDistanceFromBottom(page: Page): Promise<number> {
   return page
@@ -30,8 +18,7 @@ async function getDistanceFromBottom(page: Page): Promise<number> {
 }
 
 test('keeps following the timeline when content grows asynchronously', async ({ page }) => {
-  await login(page);
-  await page.goto(`${BASE_URL}/home/${ROOM_ID}`);
+  await page.goto(`/home/${ROOM_ID}`);
 
   const lastMessage = page.locator('[data-message-item]').last();
   await expect(lastMessage).toBeVisible();

@@ -11,3 +11,5 @@ room-view.png
 AGENTS.md
 /test-results/
 /playwright-report/
+/.env.e2e
+/playwright/.auth/

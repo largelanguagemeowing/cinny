@@ -1,0 +1,13 @@
+function requireEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing ${name}. Copy .env.e2e.example to .env.e2e and set the test account.`);
+  }
+  return value;
+}
+
+export const e2eCredentials = {
+  homeserver: requireEnv('E2E_HOMESERVER'),
+  username: requireEnv('E2E_USERNAME'),
+  password: requireEnv('E2E_PASSWORD'),
+};

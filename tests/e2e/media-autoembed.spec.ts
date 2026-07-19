@@ -1,52 +1,15 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { redactEvent } from './support/matrix';
 
-const HOMESERVER = 'matrix.unredacted.org';
-const USERNAME = 'tezstjidhsfd';
-const PASSWORD = 'tezstjidhsfd1337';
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://cinny.k8s.mreow.de';
 const ROOM_ID = '!pFxmCvJLPLEicHDuJi:stablecat.club';
 const ROOM_PATH = '%23test%3Astablecat.club/!pFxmCvJLPLEicHDuJi%3Astablecat.club';
 const MEDIA_URL = 'https://nyafiles.de/TqfpA.mp4';
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login/${HOMESERVER}`);
-  await page.locator('input[name="usernameInput"]').fill(USERNAME);
-  await page.locator('input[name="passwordInput"]').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL(/\/(home|%23space)/, { timeout: 30_000 });
-}
-
-async function redactEvent(page: Page, eventId: string) {
-  await page.evaluate(
-    async ({ roomId, targetEventId }) => {
-      const homeserver = localStorage.getItem('cinny_hs_base_url');
-      const accessToken = localStorage.getItem('cinny_access_token');
-      if (!homeserver || !accessToken) return;
-
-      await fetch(
-        `${homeserver}/_matrix/client/v3/rooms/${encodeURIComponent(
-          roomId
-        )}/redact/${encodeURIComponent(targetEventId)}/${Date.now()}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: '{}',
-        }
-      );
-    },
-    { roomId: ROOM_ID, targetEventId: eventId }
-  );
-}
 
 test('autoembeds negotiated nyafiles video and retains its link', async ({ page }) => {
   let eventId: string | undefined;
 
   try {
-    await login(page);
-    await page.goto(`${BASE_URL}/${ROOM_PATH}`);
+    await page.goto(`/${ROOM_PATH}`);
 
     const editor = page.locator('[data-editable-name="RoomInput"]');
     await expect(editor).toBeVisible();
@@ -91,6 +54,6 @@ test('autoembeds negotiated nyafiles video and retains its link', async ({ page 
       await video.evaluate((element: HTMLVideoElement) => element.videoHeight)
     ).toBeGreaterThan(0);
   } finally {
-    if (eventId) await redactEvent(page, eventId);
+    if (eventId) await redactEvent(page, ROOM_ID, eventId);
   }
 });
