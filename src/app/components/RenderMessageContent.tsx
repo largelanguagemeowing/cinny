@@ -246,12 +246,16 @@ export function RenderMessageContent({
         <MVideo
           content={getContent()}
           renderAsFile={renderFile}
-          renderVideoContent={({ body, info, ...props }) => (
+          renderVideoContent={({ body, info, gifLike, ...props }) => (
             <VideoContent
               body={body}
               info={info}
               {...props}
-              autoPlay={false}
+              autoPlay={gifLike ? mediaAutoLoad ?? false : false}
+              controls={!gifLike}
+              loop={gifLike}
+              muted={gifLike}
+              playsInline={gifLike}
               renderThumbnail={
                 mediaAutoLoad
                   ? () => (

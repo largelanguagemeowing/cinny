@@ -9,9 +9,9 @@ const KLIPY_API_KEY = 'Qy1TVEgEphESxOxmLkKghRD6O0ZZB7TOBTEKZavPBoZcmfUWv2ydB3Nzj
 
 const KLIPY_BASE_URL = 'https://api.klipy.com/v2';
 
-// We only request the formats we actually use: tinygif for the picker
-// thumbnails and mediumgif for the file we upload and send.
-const MEDIA_FILTER = 'tinygif,mediumgif';
+// We only request the formats we actually use: tinymp4 for the picker
+// thumbnails and mp4 for the file we upload and send.
+const MEDIA_FILTER = 'tinymp4,mp4';
 
 export type KlipyMediaFormat = {
   url: string;
@@ -25,6 +25,8 @@ export type KlipyGif = {
   id: string;
   title: string;
   media_formats: {
+    tinymp4?: KlipyMediaFormat;
+    mp4?: KlipyMediaFormat;
     tinygif?: KlipyMediaFormat;
     mediumgif?: KlipyMediaFormat;
     [key: string]: KlipyMediaFormat | undefined;
@@ -77,11 +79,20 @@ export const searchGifs = async (
   return { gifs: data.results ?? [], next: data.next };
 };
 
-// Pick the best available format to send as a Matrix image message. We prefer
-// mediumgif for quality/size balance, falling back to tinygif.
+// Old saved favourites can still contain GIF-only formats, so retain those as
+// fallbacks even though new API requests only load MP4s.
 export const getGifToSend = (gif: KlipyGif): KlipyMediaFormat | undefined =>
-  gif.media_formats.mediumgif ?? gif.media_formats.tinygif;
+  gif.media_formats.mp4 ??
+  gif.media_formats.tinymp4 ??
+  gif.media_formats.mediumgif ??
+  gif.media_formats.tinygif;
 
 // Pick the format to display as a thumbnail in the picker grid.
 export const getGifPreview = (gif: KlipyGif): KlipyMediaFormat | undefined =>
-  gif.media_formats.tinygif ?? gif.media_formats.mediumgif;
+  gif.media_formats.tinymp4 ??
+  gif.media_formats.mp4 ??
+  gif.media_formats.tinygif ??
+  gif.media_formats.mediumgif;
+
+export const isGifVideo = (format: KlipyMediaFormat): boolean =>
+  /\.mp4(?:$|[?#])/i.test(format.url);

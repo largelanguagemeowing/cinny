@@ -22,6 +22,7 @@ import {
   IThumbnailContent,
   IVideoContent,
   IVideoInfo,
+  MATRIX_GIF_PROPERTY_NAME,
   MATRIX_SPOILER_PROPERTY_NAME,
   MATRIX_SPOILER_REASON_PROPERTY_NAME,
 } from '../../../types/matrix/common';
@@ -235,6 +236,7 @@ type RenderVideoContentProps = {
   encInfo?: IEncryptedFile;
   markedAsSpoiler?: boolean;
   spoilerReason?: string;
+  gifLike: boolean;
 };
 type MVideoProps = {
   content: IVideoContent;
@@ -246,6 +248,7 @@ export function MVideo({ content, renderAsFile, renderVideoContent, outlined }: 
   const videoInfo = content?.info;
   const mxcUrl = content.file?.url ?? content.url;
   const safeMimeType = getBlobSafeMimeType(videoInfo?.mimetype ?? '');
+  const gifLike = content[MATRIX_GIF_PROPERTY_NAME] === true;
 
   if (!videoInfo || !safeMimeType.startsWith('video') || typeof mxcUrl !== 'string') {
     if (mxcUrl) {
@@ -254,9 +257,36 @@ export function MVideo({ content, renderAsFile, renderVideoContent, outlined }: 
     return <BrokenContent />;
   }
 
-  const height = scaleYDimension(videoInfo.w || 400, 400, videoInfo.h || 400);
-
   const filename = content.filename ?? content.body ?? 'Video';
+
+  const videoContent = renderVideoContent({
+    body: content.body || 'Video',
+    info: videoInfo,
+    mimeType: safeMimeType,
+    url: mxcUrl,
+    encInfo: content.file,
+    markedAsSpoiler: content[MATRIX_SPOILER_PROPERTY_NAME],
+    spoilerReason: content[MATRIX_SPOILER_REASON_PROPERTY_NAME],
+    gifLike,
+  });
+
+  if (gifLike) {
+    const [width, height] = fitWithin(videoInfo.w, videoInfo.h, 400, 350);
+    return (
+      <Attachment outlined={outlined} style={{ width: toRem(width) }}>
+        <AttachmentBox
+          style={{
+            width: toRem(width),
+            height: toRem(height < 48 ? 48 : height),
+          }}
+        >
+          {videoContent}
+        </AttachmentBox>
+      </Attachment>
+    );
+  }
+
+  const height = scaleYDimension(videoInfo.w || 400, 400, videoInfo.h || 400);
 
   return (
     <Attachment outlined={outlined}>
@@ -279,15 +309,7 @@ export function MVideo({ content, renderAsFile, renderVideoContent, outlined }: 
           height: toRem(height < 48 ? 48 : height),
         }}
       >
-        {renderVideoContent({
-          body: content.body || 'Video',
-          info: videoInfo,
-          mimeType: safeMimeType,
-          url: mxcUrl,
-          encInfo: content.file,
-          markedAsSpoiler: content[MATRIX_SPOILER_PROPERTY_NAME],
-          spoilerReason: content[MATRIX_SPOILER_REASON_PROPERTY_NAME],
-        })}
+        {videoContent}
       </AttachmentBox>
     </Attachment>
   );

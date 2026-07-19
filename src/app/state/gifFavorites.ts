@@ -2,7 +2,7 @@ import { atom } from 'jotai';
 import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
 import { MatrixEvent, MsgType } from 'matrix-js-sdk';
 import { KlipyGif } from '../utils/klipy';
-import { IImageInfo } from '../../types/matrix/common';
+import { IImageInfo, MATRIX_GIF_PROPERTY_NAME } from '../../types/matrix/common';
 import { parseOoyeGif } from '../utils/ooye';
 
 const STORAGE_KEY = 'gifFavorites';
@@ -18,6 +18,7 @@ export type FavoriteGif =
       body: string;
       info?: IImageInfo;
       encInfo?: EncryptedAttachmentInfo;
+      video?: boolean;
     }
   | { kind: 'url'; title: string; videoUrl: string; pageUrl?: string };
 
@@ -102,6 +103,20 @@ export const getEventFavoriteGif = (mEvent: MatrixEvent): FavoriteGif | undefine
       body: filename,
       info,
       encInfo: content.file,
+    };
+  }
+
+  if (msgType === MsgType.Video && content[MATRIX_GIF_PROPERTY_NAME] === true) {
+    const mxc = content.file?.url ?? content.url;
+    if (typeof mxc !== 'string') return undefined;
+    const filename = content.filename ?? content.body ?? 'gif.mp4';
+    return {
+      kind: 'mxc',
+      mxc,
+      body: filename,
+      info: content.info,
+      encInfo: content.file,
+      video: true,
     };
   }
 

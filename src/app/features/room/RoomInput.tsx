@@ -58,8 +58,9 @@ import {
   replaceShortcodeWithEmoji,
 } from '../../components/editor';
 import { EmojiBoard, EmojiBoardTab } from '../../components/emoji-board';
-import { getGifToSend } from '../../utils/klipy';
+import { getGifToSend, isGifVideo } from '../../utils/klipy';
 import { FavoriteGif } from '../../state/gifFavorites';
+import { MATRIX_GIF_PROPERTY_NAME } from '../../../types/matrix/common';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import {
   TUploadContent,
@@ -511,7 +512,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       try {
         // An unencrypted mxc favourite going into an unencrypted room can
         // reuse the already uploaded content without a re-upload.
-        if (fav.kind === 'mxc' && !fav.encInfo && !room.hasEncryptionStateEvent()) {
+        if (fav.kind === 'mxc' && !fav.video && !fav.encInfo && !room.hasEncryptionStateEvent()) {
           sendGifContent({
             msgtype: MsgType.Image,
             body: fav.body,
@@ -524,13 +525,15 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
 
         let blob: Blob;
         let filename: string;
+        let videoGif = fav.kind === 'url' || (fav.kind === 'mxc' && fav.video === true);
         if (fav.kind === 'klipy') {
           const format = getGifToSend(fav.gif);
           if (!format?.url) return;
+          videoGif = isGifVideo(format);
           const resp = await fetch(format.url);
           if (!resp.ok) return;
           blob = await resp.blob();
-          filename = `${safeGifName(fav.gif.title || 'gif', 'gif')}.gif`;
+          filename = `${safeGifName(fav.gif.title || 'gif', 'gif')}.${videoGif ? 'mp4' : 'gif'}`;
         } else if (fav.kind === 'mxc') {
           const mediaUrl = mxcUrlToHttp(mx, fav.mxc, useAuthentication);
           if (!mediaUrl) return;
@@ -544,7 +547,11 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
             if (!resp.ok) return;
             blob = await resp.blob();
           }
-          filename = /\.gif$/i.test(fav.body) ? fav.body : `${safeGifName(fav.body, 'gif')}.gif`;
+          const extension = videoGif ? 'mp4' : 'gif';
+          const baseName = fav.body.replace(/\.(?:gif|mp4)$/i, '');
+          filename = new RegExp(`\\.${extension}$`, 'i').test(fav.body)
+            ? fav.body
+            : `${safeGifName(baseName, 'gif')}.${extension}`;
         } else {
           const resp = await fetch(fav.videoUrl);
           if (!resp.ok) return;
@@ -552,7 +559,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           filename = `${safeGifName(fav.title || 'gif', 'gif')}.mp4`;
         }
 
-        const defaultType = fav.kind === 'url' ? 'video/mp4' : 'image/gif';
+        const defaultType = videoGif ? 'video/mp4' : 'image/gif';
         const file = new File([blob], filename, {
           type: blob.type || defaultType,
         });
@@ -570,10 +577,10 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           encInfo: encData?.encInfo,
           metadata: { markedAsSpoiler: false },
         };
-        const content =
-          fav.kind === 'url'
-            ? await getVideoMsgContent(mx, item, mxc)
-            : await getImageMsgContent(mx, item, mxc);
+        const content = videoGif
+          ? await getVideoMsgContent(mx, item, mxc)
+          : await getImageMsgContent(mx, item, mxc);
+        if (videoGif) content[MATRIX_GIF_PROPERTY_NAME] = true;
 
         sendGifContent(content);
       } catch (e) {

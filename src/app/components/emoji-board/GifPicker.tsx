@@ -15,7 +15,7 @@ import {
   useIntersectionObserver,
 } from '../../hooks/useIntersectionObserver';
 import { useKlipyGifs } from '../../hooks/useKlipyGifs';
-import { getGifPreview } from '../../utils/klipy';
+import { getGifPreview, isGifVideo } from '../../utils/klipy';
 import { mobileOrTablet } from '../../utils/user-agent';
 import * as css from './components/styles.css';
 import { preventScrollWithArrowKey } from '../../utils/keyboard';
@@ -44,7 +44,9 @@ const getFavoriteTitle = (fav: FavoriteGif): string => {
 
 // Resolve a preview `src` for any favourite kind. Encrypted mxc GIFs are
 // downloaded and decrypted into an object URL.
-const useFavoriteGifPreview = (fav: FavoriteGif): { src?: string; aspect?: string } => {
+const useFavoriteGifPreview = (
+  fav: FavoriteGif
+): { src?: string; aspect?: string; video?: boolean } => {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const [decryptedSrc, setDecryptedSrc] = useState<string>();
@@ -80,6 +82,7 @@ const useFavoriteGifPreview = (fav: FavoriteGif): { src?: string; aspect?: strin
     return {
       src: preview?.url,
       aspect: dims?.[0] && dims?.[1] ? `${dims[0]} / ${dims[1]}` : undefined,
+      video: preview ? isGifVideo(preview) : false,
     };
   }
   if (fav.kind === 'mxc') {
@@ -87,9 +90,10 @@ const useFavoriteGifPreview = (fav: FavoriteGif): { src?: string; aspect?: strin
     return {
       src: fav.encInfo ? decryptedSrc : mxcUrlToHttp(mx, fav.mxc, useAuthentication) ?? undefined,
       aspect: info?.w && info?.h ? `${info.w} / ${info.h}` : undefined,
+      video: fav.video,
     };
   }
-  return { src: fav.videoUrl };
+  return { src: fav.videoUrl, video: true };
 };
 
 type GifTileProps = {
@@ -101,7 +105,7 @@ type GifTileProps = {
 
 function GifTile({ fav, onClick, isFavorited, onToggleFavorite }: GifTileProps) {
   const title = getFavoriteTitle(fav);
-  const { src, aspect } = useFavoriteGifPreview(fav);
+  const { src, aspect, video } = useFavoriteGifPreview(fav);
   const [hovered, setHovered] = useState(false);
   if (!src) return null;
 
@@ -131,7 +135,7 @@ function GifTile({ fav, onClick, isFavorited, onToggleFavorite }: GifTileProps) 
       >
         <Icon src={Icons.Star} size="200" filled={isFavorited} />
       </button>
-      {fav.kind === 'url' ? (
+      {video ? (
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <video
           className={css.GifTileImg}
