@@ -7,7 +7,7 @@ import {
   SidebarStackSeparator,
   SidebarStack,
 } from '../../components/sidebar';
-import { HomeTab, DirectTab, SpaceTabs, ExploreTab, SettingsTab, UnverifiedTab } from './sidebar';
+import { HomeTab, DirectTab, SpaceTabs, ExploreTab, UnverifiedTab } from './sidebar';
 import { CreateTab } from './sidebar/CreateTab';
 
 export function SidebarNav() {
@@ -27,11 +27,7 @@ export function SidebarNav() {
             <SidebarStack>
               <ExploreTab />
               <CreateTab />
-            </SidebarStack>
-            <SidebarStackSeparator />
-            <SidebarStack>
               <UnverifiedTab />
-              <SettingsTab />
             </SidebarStack>
           </Scroll>
         }

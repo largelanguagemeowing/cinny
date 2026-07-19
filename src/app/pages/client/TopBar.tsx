@@ -29,6 +29,7 @@ import { useNavToActivePathAtom } from '../../state/hooks/navToActivePath';
 import { ContainerColor } from '../../styles/ContainerColor.css';
 import { roomSearchTermAtom, roomSearchDrawerActiveAtom } from '../../state/roomSearch';
 import * as css from './TopBar.css';
+import { TopBarProfile } from './TopBarProfile';
 
 function InboxButton() {
   const screenSize = useScreenSizeContext();
@@ -171,9 +172,12 @@ export function TopBar() {
         padding: `0 ${config.space.S200}`,
       }}
     >
-      <Box alignItems="Center" justifyContent="End" grow="Yes" gap="200">
-        {drawerActive && <RoomSearchBar />}
-        <InboxButton />
+      <Box alignItems="Center" grow="Yes" gap="200">
+        <TopBarProfile />
+        <Box alignItems="Center" justifyContent="End" grow="Yes" gap="200">
+          {drawerActive && <RoomSearchBar />}
+          <InboxButton />
+        </Box>
       </Box>
     </Header>
   );
