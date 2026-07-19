@@ -90,7 +90,7 @@ const useGroups = (
 
     imagePacks.forEach((pack) => {
       let label = pack.meta.name;
-      if (!label) label = isUserId(pack.id) ? 'Personal Pack' : mx.getRoom(pack.id)?.name;
+      if (!label) label = isUserId(pack.id) ? 'Personal Set' : mx.getRoom(pack.id)?.name;
 
       g.push({
         id: pack.id,
@@ -118,7 +118,7 @@ const useGroups = (
 
     imagePacks.forEach((pack) => {
       let label = pack.meta.name;
-      if (!label) label = isUserId(pack.id) ? 'Personal Pack' : mx.getRoom(pack.id)?.name;
+      if (!label) label = isUserId(pack.id) ? 'Personal Set' : mx.getRoom(pack.id)?.name;
 
       g.push({
         id: pack.id,
@@ -201,7 +201,7 @@ function EmojiSidebar({ activeGroupAtom, packs, onScrollToGroup }: EmojiSidebarP
           <SidebarDivider />
           {packs.map((pack) => {
             let label = pack.meta.name;
-            if (!label) label = isUserId(pack.id) ? 'Personal Pack' : mx.getRoom(pack.id)?.name;
+            if (!label) label = isUserId(pack.id) ? 'Personal Set' : mx.getRoom(pack.id)?.name;
 
             const url =
               mxcUrlToHttp(mx, pack.getAvatarUrl(usage) ?? '', useAuthentication) ?? undefined;
@@ -211,7 +211,7 @@ function EmojiSidebar({ activeGroupAtom, packs, onScrollToGroup }: EmojiSidebarP
                 key={pack.id}
                 active={activeGroupId === pack.id}
                 id={pack.id}
-                label={label ?? 'Unknown Pack'}
+                label={label ?? 'Unknown Set'}
                 url={url}
                 onClick={handleScrollToGroup}
               />
@@ -264,7 +264,7 @@ function StickerSidebar({ activeGroupAtom, packs, onScrollToGroup }: StickerSide
       <SidebarStack>
         {packs.map((pack) => {
           let label = pack.meta.name;
-          if (!label) label = isUserId(pack.id) ? 'Personal Pack' : mx.getRoom(pack.id)?.name;
+          if (!label) label = isUserId(pack.id) ? 'Personal Set' : mx.getRoom(pack.id)?.name;
 
           const url =
             mxcUrlToHttp(mx, pack.getAvatarUrl(usage) ?? '', useAuthentication) ?? undefined;
@@ -274,7 +274,7 @@ function StickerSidebar({ activeGroupAtom, packs, onScrollToGroup }: StickerSide
               key={pack.id}
               active={activeGroupId === pack.id}
               id={pack.id}
-              label={label ?? 'Unknown Pack'}
+              label={label ?? 'Unknown Set'}
               url={url}
               onClick={handleScrollToGroup}
             />
