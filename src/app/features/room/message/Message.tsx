@@ -943,6 +943,17 @@ export const Message = as<'div', MessageProps>(
       });
     };
 
+    const handleDoubleClick: MouseEventHandler<HTMLDivElement> = useCallback(
+      (evt) => {
+        if (edit) return;
+        // Don't interfere with interactive elements
+        const target = evt.target as HTMLElement;
+        if (target.closest('a, button, input, textarea, [contenteditable]')) return;
+        onReplyClick(evt as any);
+      },
+      [edit, onReplyClick]
+    );
+
     const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
       const target = evt.currentTarget.parentElement?.parentElement ?? evt.currentTarget;
       setMenuAnchor(target.getBoundingClientRect());
@@ -980,6 +991,8 @@ export const Message = as<'div', MessageProps>(
         collapse={collapse}
         highlight={highlight}
         selected={!!menuAnchor || !!emojiBoardAnchor}
+        data-event-id={mEvent.getId()}
+        onDoubleClick={handleDoubleClick}
         {...props}
         {...hoverProps}
         {...focusWithinProps}
