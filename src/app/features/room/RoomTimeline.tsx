@@ -928,14 +928,14 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     }
   }, [scrollToElement, editId]);
 
-  const handleJumpToLatest = () => {
+  const handleJumpToLatest = useCallback(() => {
     if (eventId) {
       navigateRoom(room.roomId, undefined, { replace: true });
     }
     setTimeline(getInitialTimeline(room));
     scrollToBottomRef.current.count += 1;
     scrollToBottomRef.current.smooth = false;
-  };
+  }, [eventId, navigateRoom, room]);
 
   const handleJumpToUnread = () => {
     if (unreadInfo?.readUptoEventId) {
@@ -947,6 +947,24 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   const handleMarkAsRead = () => {
     markAsRead(mx, room.roomId, hideActivity);
   };
+
+  // Discord-style Escape: mark the room as read and jump to the latest message.
+  // Ignored while an editable element (message input / edit) or a portal overlay
+  // (modal, dialog, etc.) is focused so those components can handle Escape themselves.
+  useKeyDown(
+    window,
+    useCallback(
+      (evt) => {
+        if (!isKeyHotkey('escape', evt)) return;
+        if (editableActiveElement()) return;
+        const portalContainer = document.getElementById('portalContainer');
+        if (portalContainer && portalContainer.children.length > 0) return;
+        markAsRead(mx, room.roomId, hideActivity);
+        handleJumpToLatest();
+      },
+      [mx, room.roomId, hideActivity, handleJumpToLatest]
+    )
+  );
 
   const handleOpenReply: MouseEventHandler = useCallback(
     async (evt) => {
