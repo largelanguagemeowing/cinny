@@ -52,6 +52,8 @@ export interface Settings {
   spaceRoleMode: boolean;
 
   developerTools: boolean;
+
+  onlySignedDevices: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -91,6 +93,8 @@ const defaultSettings: Settings = {
   spaceRoleMode: false,
 
   developerTools: false,
+
+  onlySignedDevices: false,
 };
 
 export const getSettings = () => {

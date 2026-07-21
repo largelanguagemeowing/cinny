@@ -1,7 +1,12 @@
 import { createClient, MatrixClient, IndexedDBStore, IndexedDBCryptoStore } from 'matrix-js-sdk';
+import {
+  AllDevicesIsolationMode,
+  OnlySignedDevicesIsolationMode,
+} from 'matrix-js-sdk/lib/crypto-api';
 
 import { cryptoCallbacks } from './secretStorageKeys';
 import { clearNavToActivePathStore } from '../app/state/navToActivePath';
+import { getSettings } from '../app/state/settings';
 import { pushSessionToSW } from '../sw-session';
 import { USER_PROFILE_FIELDS } from '../types/matrix/profile';
 
@@ -35,6 +40,17 @@ export const initClient = async (session: Session): Promise<MatrixClient> => {
 
   await indexedDBStore.startup();
   await mx.initRustCrypto();
+
+  // Apply the user's device-isolation preference. The crypto store holds this
+  // only in memory, so we re-apply it on every client init from localStorage.
+  const crypto = mx.getCrypto();
+  if (crypto) {
+    crypto.setDeviceIsolationMode(
+      getSettings().onlySignedDevices
+        ? new OnlySignedDevicesIsolationMode()
+        : new AllDevicesIsolationMode(false)
+    );
+  }
 
   mx.setMaxListeners(50);
 
