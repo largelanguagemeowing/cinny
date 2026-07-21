@@ -1,7 +1,6 @@
 import FocusTrap from 'focus-trap-react';
-import { as, Modal, Overlay, OverlayBackdrop, OverlayCenter } from 'folds';
+import { as, Overlay, OverlayBackdrop, OverlayCenter } from 'folds';
 import React, { ReactNode } from 'react';
-import { ModalWide } from '../styles/Modal.css';
 import { stopPropagation } from '../utils/keyboard';
 
 export type RenderViewerProps = {
@@ -27,17 +26,11 @@ export const ImageOverlay = as<'div', ImageOverlayProps>(
             escapeDeactivates: stopPropagation,
           }}
         >
-          <Modal
-            className={ModalWide}
-            size="500"
-            onContextMenu={(evt: any) => evt.stopPropagation()}
-          >
-            {renderViewer({
-              src,
-              alt,
-              requestClose,
-            })}
-          </Modal>
+          {renderViewer({
+            src,
+            alt,
+            requestClose,
+          })}
         </FocusTrap>
       </OverlayCenter>
     </Overlay>
