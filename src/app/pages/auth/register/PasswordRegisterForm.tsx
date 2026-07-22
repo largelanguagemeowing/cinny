@@ -27,6 +27,7 @@ import {
   hasStageInFlows,
   requiredStageInFlows,
 } from '../../../utils/matrix-uia';
+import { getDeviceDisplayName } from '../../../utils/device';
 import { useUIACompleted, useUIAFlow, useUIAParams } from '../../../hooks/useUIAFlows';
 import { AsyncState, AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useAutoDiscoveryInfo } from '../../../hooks/useAutoDiscoveryInfo';
@@ -109,7 +110,7 @@ function RegisterUIAFlow({
         auth: authDict,
         password,
         username,
-        initial_device_display_name: 'Cinny Web',
+        initial_device_display_name: getDeviceDisplayName(),
       });
     },
     [onRegister, formData]
@@ -250,7 +251,7 @@ export function PasswordRegisterForm({
       auth: {
         session: authData.session,
       },
-      initial_device_display_name: 'Cinny Web',
+      initial_device_display_name: getDeviceDisplayName(),
     });
   };
 
