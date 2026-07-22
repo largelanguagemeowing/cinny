@@ -6,7 +6,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useAtomValue, useSetAtom } from 'jotai';
 import { Box, Icon, Icons, Input, Scroll, Spinner, Text, config } from 'folds';
 import classNames from 'classnames';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -22,8 +21,8 @@ import { preventScrollWithArrowKey } from '../../utils/keyboard';
 import {
   FavoriteGif,
   getFavoriteGifId,
-  gifFavoritesAtom,
-  toggleGifFavoriteAtom,
+  useGifFavorites,
+  useToggleGifFavorite,
 } from '../../state/gifFavorites';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
@@ -182,8 +181,8 @@ const CATEGORIES: { id: Category; label: string }[] = [
 
 export function GifPicker({ onGifSelect, requestClose }: GifPickerProps) {
   const { gifs, status, error, hasMore, loadMore, search, resetSearch } = useKlipyGifs();
-  const favorites = useAtomValue(gifFavoritesAtom);
-  const toggleFavorite = useSetAtom(toggleGifFavoriteAtom);
+  const favorites = useGifFavorites();
+  const toggleFavorite = useToggleGifFavorite();
 
   const [category, setCategory] = useState<Category>('trending');
   const [searchTerm, setSearchTerm] = useState('');

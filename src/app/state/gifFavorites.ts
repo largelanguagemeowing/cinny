@@ -1,11 +1,16 @@
-import { atom } from 'jotai';
+import { useCallback, useMemo } from 'react';
 import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
-import { MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
 import { KlipyGif } from '../utils/klipy';
 import { IImageInfo, MATRIX_GIF_PROPERTY_NAME } from '../../types/matrix/common';
 import { parseOoyeGif } from '../utils/ooye';
+import { AccountDataEvent } from '../../types/matrix/accountData';
+import { getAccountData } from '../utils/room';
+import { useMatrixClient } from '../hooks/useMatrixClient';
+import { useAccountData } from '../hooks/useAccountData';
 
-const STORAGE_KEY = 'gifFavorites';
+// pre-account-data storage; migrated on first sync then removed
+const LEGACY_STORAGE_KEY = 'gifFavorites';
 
 // A favourite GIF can come from the Klipy picker, from any GIF image/sticker
 // event in a timeline (mxc), or from an OOYE-bridged GIF message (external
@@ -28,10 +33,14 @@ export const getFavoriteGifId = (fav: FavoriteGif): string => {
   return fav.videoUrl;
 };
 
-type StoredFavorite = {
+export type StoredFavorite = {
   id: string;
   fav: FavoriteGif;
   addedAt: number;
+};
+
+export type GifFavoritesContent = {
+  favorites?: StoredFavorite[];
 };
 
 const parseStoredFavorite = (item: any): StoredFavorite | undefined => {
@@ -47,40 +56,91 @@ const parseStoredFavorite = (item: any): StoredFavorite | undefined => {
   return undefined;
 };
 
-const readFavorites = (): StoredFavorite[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(parseStoredFavorite)
-      .filter((item): item is StoredFavorite => item !== undefined);
-  } catch {
-    return [];
-  }
+const parseFavorites = (list: unknown): StoredFavorite[] => {
+  if (!Array.isArray(list)) return [];
+  return list.map(parseStoredFavorite).filter((item): item is StoredFavorite => item !== undefined);
 };
 
-const writeFavorites = (favorites: StoredFavorite[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
-  } catch {
-    // ignore quota errors
-  }
+export const getGifFavorites = (mx: MatrixClient): StoredFavorite[] => {
+  const content = getAccountData(
+    mx,
+    AccountDataEvent.KibbyGifFavorites
+  )?.getContent<GifFavoritesContent>();
+  return parseFavorites(content?.favorites);
 };
 
-export const gifFavoritesAtom = atom<StoredFavorite[]>(readFavorites());
+const setGifFavorites = (mx: MatrixClient, favorites: StoredFavorite[]): Promise<unknown> =>
+  mx.setAccountData(AccountDataEvent.KibbyGifFavorites, { favorites });
 
-export const toggleGifFavoriteAtom = atom<null, [FavoriteGif], void>(null, (get, set, fav) => {
+export const toggleGifFavorite = (mx: MatrixClient, fav: FavoriteGif): Promise<unknown> => {
   const id = getFavoriteGifId(fav);
-  const current = get(gifFavoritesAtom);
+  const current = getGifFavorites(mx);
   const exists = current.some((f) => f.id === id);
   const next = exists
     ? current.filter((f) => f.id !== id)
     : [{ id, fav, addedAt: Date.now() }, ...current];
-  set(gifFavoritesAtom, next);
-  writeFavorites(next);
-});
+  return setGifFavorites(mx, next);
+};
+
+/**
+ * Reactively returns the user's favourite GIFs, updating when the
+ * `im.kibby.gif_favorites` account data event changes.
+ */
+export const useGifFavorites = (): StoredFavorite[] => {
+  const event = useAccountData(AccountDataEvent.KibbyGifFavorites);
+  return useMemo(() => parseFavorites(event?.getContent<GifFavoritesContent>().favorites), [event]);
+};
+
+/**
+ * Returns a stable callback that toggles a GIF in/out of favourites, persisting
+ * the result to account data.
+ */
+export const useToggleGifFavorite = (): ((fav: FavoriteGif) => void) => {
+  const mx = useMatrixClient();
+  return useCallback(
+    (fav: FavoriteGif) => {
+      toggleGifFavorite(mx, fav);
+    },
+    [mx]
+  );
+};
+
+/**
+ * One-time migration of GIF favourites from the old localStorage store into
+ * account data. Merges any legacy entries not already present, preserving
+ * newest-first order, then clears the legacy key.
+ */
+export const migrateGifFavorites = async (mx: MatrixClient): Promise<void> => {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+
+  let legacy: StoredFavorite[] = [];
+  try {
+    legacy = parseFavorites(JSON.parse(raw));
+  } catch {
+    legacy = [];
+  }
+
+  if (legacy.length) {
+    const existing = getGifFavorites(mx);
+    const existingIds = new Set(existing.map((f) => f.id));
+    const merged = [...existing, ...legacy.filter((f) => !existingIds.has(f.id))].sort(
+      (a, b) => b.addedAt - a.addedAt
+    );
+    await setGifFavorites(mx, merged);
+  }
+
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+};
 
 // Extract a favouritable GIF from a timeline event: GIF image messages, GIF
 // stickers and OOYE-bridged GIF text/notice messages.

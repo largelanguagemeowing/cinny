@@ -6,6 +6,7 @@ export enum AccountDataEvent {
   CinnySpaces = 'in.cinny.spaces',
 
   KibbyRoomOrder = 'im.kibby.room_order',
+  KibbyGifFavorites = 'im.kibby.gif_favorites',
 
   ElementRecentEmoji = 'io.element.recent_emoji',
 

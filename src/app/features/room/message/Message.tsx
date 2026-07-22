@@ -32,7 +32,6 @@ import React, {
 } from 'react';
 import FocusTrap from 'focus-trap-react';
 import { useHover, useFocusWithin } from 'react-aria';
-import { useAtomValue, useSetAtom } from 'jotai';
 import { MatrixEvent, Room } from 'matrix-js-sdk';
 import { EventStatus } from 'matrix-js-sdk/lib/models/event-status';
 import { Relations } from 'matrix-js-sdk/lib/models/relations';
@@ -84,8 +83,8 @@ import { getPowerTagIconSrc } from '../../../hooks/useMemberPowerTag';
 import {
   getEventFavoriteGif,
   getFavoriteGifId,
-  gifFavoritesAtom,
-  toggleGifFavoriteAtom,
+  useGifFavorites,
+  useToggleGifFavorite,
 } from '../../../state/gifFavorites';
 
 export type ReactionHandler = (keyOrMxc: string, shortcode: string) => void;
@@ -364,8 +363,8 @@ export const MessageFavoriteGifItem = as<
     onClose?: () => void;
   }
 >(({ mEvent, onClose, ...props }, ref) => {
-  const favorites = useAtomValue(gifFavoritesAtom);
-  const toggleFavorite = useSetAtom(toggleGifFavoriteAtom);
+  const favorites = useGifFavorites();
+  const toggleFavorite = useToggleGifFavorite();
 
   const fav = getEventFavoriteGif(mEvent);
   if (!fav) return null;

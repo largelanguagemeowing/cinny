@@ -26,6 +26,18 @@ import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
 import { useSelectedRoom } from '../../hooks/router/useSelectedRoom';
 import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { migrateGifFavorites } from '../../state/gifFavorites';
+
+function GifFavoritesMigration() {
+  const mx = useMatrixClient();
+
+  useEffect(() => {
+    // failed writes keep the legacy store, so we retry on next launch
+    migrateGifFavorites(mx).catch(() => undefined);
+  }, [mx]);
+
+  return null;
+}
 
 function SystemEmojiFeature() {
   const [twitterEmoji] = useSetting(settingsAtom, 'twitterEmoji');
@@ -262,6 +274,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
     <>
       <SystemEmojiFeature />
       <PageZoomFeature />
+      <GifFavoritesMigration />
       <FaviconUpdater />
       <InviteNotifications />
       <MessageNotifications />
