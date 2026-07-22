@@ -8,6 +8,10 @@ export type UseKlipyGifs = {
   status: GifFetchStatus;
   error: string | undefined;
   hasMore: boolean;
+  /** The query whose results are currently displayed. Changes only on a
+   *  fresh (non-append) fetch, so it can be used as a dependency to react
+   *  to new search results (e.g. resetting scroll position). */
+  query: string;
   loadMore: () => void;
   search: (query: string) => void;
   resetSearch: () => void;
@@ -19,6 +23,7 @@ export const useKlipyGifs = (): UseKlipyGifs => {
   const [gifs, setGifs] = useState<KlipyGif[]>([]);
   const [status, setStatus] = useState<GifFetchStatus>('idle');
   const [error, setError] = useState<string | undefined>();
+  const [resultQuery, setResultQuery] = useState('');
 
   const queryRef = useRef<string>('');
   const nextCursorRef = useRef<string | undefined>(undefined);
@@ -41,6 +46,10 @@ export const useKlipyGifs = (): UseKlipyGifs => {
       setGifs((prev) => (append ? [...prev, ...page.gifs] : page.gifs));
       setStatus('success');
       setError(undefined);
+      // Track the query whose results are now displayed. Only updated on a
+      // fresh fetch (not on loadMore append) so callers can detect new result
+      // sets, e.g. to reset scroll position.
+      if (!append) setResultQuery(query);
     } catch (err) {
       if (controller.signal.aborted) return;
       setStatus('error');
@@ -85,6 +94,7 @@ export const useKlipyGifs = (): UseKlipyGifs => {
     gifs,
     status,
     error,
+    query: resultQuery,
     hasMore: nextCursorRef.current !== undefined,
     loadMore,
     search,

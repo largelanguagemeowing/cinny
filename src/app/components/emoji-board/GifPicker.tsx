@@ -2,6 +2,7 @@ import React, {
   ChangeEventHandler,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -180,7 +181,7 @@ const CATEGORIES: { id: Category; label: string }[] = [
 ];
 
 export function GifPicker({ onGifSelect, requestClose }: GifPickerProps) {
-  const { gifs, status, error, hasMore, loadMore, search, resetSearch } = useKlipyGifs();
+  const { gifs, status, error, query, hasMore, loadMore, search, resetSearch } = useKlipyGifs();
   const favorites = useGifFavorites();
   const toggleFavorite = useToggleGifFavorite();
 
@@ -253,6 +254,15 @@ export function GifPicker({ onGifSelect, requestClose }: GifPickerProps) {
     useCallback(() => ({ root: scrollRef.current, rootMargin: '300px' }), []),
     useCallback(() => sentinelRef.current, [])
   );
+
+  // Reset scroll to the top whenever a fresh set of results arrives (new search
+  // query or reset back to trending). `query` from the hook only changes on a
+  // non-append fetch, so paginating with loadMore does not trigger this.
+  // useLayoutEffect lands the scroll before paint to avoid a flash of the
+  // previous scroll position over the new results.
+  useLayoutEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [query]);
 
   const isFavouritesTab = category === 'favourites';
   const favoriteGifs = useMemo(() => favorites.map((f) => f.fav), [favorites]);
