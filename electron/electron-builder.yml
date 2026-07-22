@@ -1,0 +1,40 @@
+appId: de.mreow.cinny
+productName: Cinny
+copyright: Cinny contributors (AGPL-3.0-only)
+
+directories:
+  output: electron/out
+  buildResources: electron/build
+
+# main process uses only node built-ins + electron, so ship dist + electron/
+# and explicitly drop node_modules to keep the package lean
+files:
+  - dist/**/*
+  - electron/main.cjs
+  - electron/preload.cjs
+  - electron/app-protocol.cjs
+  - electron/menu.cjs
+  - package.json
+  - '!node_modules/**/*'
+
+extraMetadata:
+  main: electron/main.cjs
+
+# app ships no node_modules (main uses only node built-ins), skip native rebuild
+npmRebuild: false
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Network
+  icon: electron/build/icon.png
+  synopsis: Yet another Matrix client
+  description: Desktop build of the Cinny Matrix client.
+  maintainer: largelanguagemeowing <noreply@mreow.de>
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+deb:
+  artifactName: ${productName}-${version}-${arch}.${ext}

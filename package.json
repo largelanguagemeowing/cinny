@@ -21,7 +21,9 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky install",
     "commit": "git-cz",
-    "bump": "node scripts/update-version.js"
+    "bump": "node scripts/update-version.js",
+    "electron:start": "electron electron/main.cjs",
+    "electron:dist": "npm run build && electron-builder --config electron/electron-builder.yml --linux"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": "eslint",
@@ -115,6 +117,8 @@
     "buffer": "6.0.3",
     "cz-conventional-changelog": "3.3.0",
     "dotenv": "17.4.2",
+    "electron": "32.2.7",
+    "electron-builder": "25.1.8",
     "eslint": "8.29.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "8.5.0",

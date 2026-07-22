@@ -1,15 +1,28 @@
-experiment
-dist
+# Dependencies
 node_modules
-devAssets
 
-.DS_Store
-.idea
-.playwright-cliroom-view.png
-.playwright-cli/
+# Build output
+dist
+electron/out
+
+# Local scratch / assets
+experiment
+devAssets
 room-view.png
-AGENTS.md
+.playwright-cliroom-view.png
+
+# Test artifacts
 /test-results/
 /playwright-report/
-/.env.e2e
 /playwright/.auth/
+.playwright-cli/
+
+# Env / secrets
+/.env.e2e
+
+# Editor / OS
+.DS_Store
+.idea
+
+# Fork-only (must not leak upstream)
+AGENTS.md
