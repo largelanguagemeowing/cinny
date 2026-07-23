@@ -1033,6 +1033,10 @@ function Sidebar() {
     settingsAtom,
     'showPresenceInMemberList'
   );
+  const [showPresenceInDMList, setShowPresenceInDMList] = useSetting(
+    settingsAtom,
+    'showPresenceInDMList'
+  );
 
   return (
     <Box direction="Column" gap="100">
@@ -1046,6 +1050,17 @@ function Sidebar() {
               variant="Primary"
               value={showPresenceInMemberList}
               onChange={setShowPresenceInMemberList}
+            />
+          }
+        />
+        <SettingTile
+          title="Presence in Direct Messages"
+          description="Show online, busy, and away status badges and status messages on direct message conversations in the home list."
+          after={
+            <Switch
+              variant="Primary"
+              value={showPresenceInDMList}
+              onChange={setShowPresenceInDMList}
             />
           }
         />

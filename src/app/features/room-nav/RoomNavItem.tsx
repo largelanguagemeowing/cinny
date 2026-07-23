@@ -52,6 +52,8 @@ import { RoomNotificationModeSwitcher } from '../../components/RoomNotificationS
 import { getRoomCreatorsForRoomId, useRoomCreators } from '../../hooks/useRoomCreators';
 import { getRoomPermissionsAPI, useRoomPermissions } from '../../hooks/useRoomPermissions';
 import { InviteUserPrompt } from '../../components/invite-user-prompt';
+import { useUserPresence } from '../../hooks/useUserPresence';
+import { AvatarPresence, PresenceBadge } from '../../components/presence';
 import { useRoomName } from '../../hooks/useRoomMeta';
 import { useCallMembers, useCallSession } from '../../hooks/useCall';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
@@ -61,6 +63,7 @@ import { useAutoDiscoveryInfo } from '../../hooks/useAutoDiscoveryInfo';
 import { livekitSupport } from '../../hooks/useLivekitSupport';
 import { StateEvent } from '../../../types/matrix/room';
 import { webRTCSupported } from '../../utils/rtc';
+import * as css from './styles.css';
 
 const VOICE_CHANNEL_PREFIX_RE = /^\[🔊\ufe0f?\]\s*/;
 
@@ -268,6 +271,21 @@ export function RoomNavItem({
 
   const roomName = useRoomName(room);
 
+  const [showPresenceInDMList] = useSetting(settingsAtom, 'showPresenceInDMList');
+  const dmPartnerId =
+    direct && showAvatar
+      ? room.getAvatarFallbackMember()?.userId
+      : undefined;
+  const presenceUserId =
+    dmPartnerId && dmPartnerId !== mx.getUserId() ? dmPartnerId : '';
+  const presence = useUserPresence(presenceUserId);
+  const hasPresence =
+    showPresenceInDMList && direct && showAvatar && presence && presence.lastActiveTs !== 0;
+  const presenceBadge = hasPresence ? (
+    <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
+  ) : undefined;
+  const statusMsg = hasPresence && presence.status ? presence.status : undefined;
+
   const voiceMatch = roomName.match(VOICE_CHANNEL_PREFIX_RE);
   const isVoiceChannel = !!voiceMatch;
   const displayName = isVoiceChannel ? roomName.slice(voiceMatch[0].length) : roomName;
@@ -368,13 +386,26 @@ export function RoomNavItem({
       <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
         <NavItemContent>
           <Box as="span" grow="Yes" alignItems="Center" gap="200">
-            <Avatar size="200" radii="400">
-              {avatarContent}
-            </Avatar>
-            <Box as="span" grow="Yes">
+            <AvatarPresence variant="Background" badge={presenceBadge}>
+              <Avatar size="200" radii="400">
+                {avatarContent}
+              </Avatar>
+            </AvatarPresence>
+            <Box as="span" grow="Yes" direction="Column">
               <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
                 {displayName}
               </Text>
+              {statusMsg && (
+                <Text
+                  className={css.DmStatus}
+                  size="T200"
+                  priority="300"
+                  truncate
+                  title={statusMsg}
+                >
+                  {statusMsg}
+                </Text>
+              )}
             </Box>
             {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
               <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
