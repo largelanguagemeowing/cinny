@@ -37,7 +37,11 @@ export const useFileDropZone = (
   useEffect(() => {
     const target = zoneRef.current;
     const handleDragEnter = (evt: DragEvent) => {
-      if (evt.dataTransfer?.types.includes('Files')) {
+      // Only react to external file drags. In-page element drags (e.g. dragging
+      // a chat image) also report 'Files' when the src is a blob URL, but they
+      // additionally carry 'text/html'; OS file drags never do.
+      const types = evt.dataTransfer?.types;
+      if (types?.includes('Files') && !types.includes('text/html')) {
         dragStateRef.current = 'start';
         setActive(true);
       }
