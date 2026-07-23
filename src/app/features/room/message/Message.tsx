@@ -948,8 +948,14 @@ export const Message = as<'div', MessageProps>(
         // Don't interfere with interactive elements
         const target = evt.target as HTMLElement;
         if (target.closest('a, button, input, textarea, [contenteditable]')) return;
-        // Don't trigger reply when double-clicking on text (which selects a word)
-        if (!window.getSelection()?.isCollapsed) return;
+        // Don't trigger reply when double-clicking directly on text (which
+        // selects a word). Only fire on non-text areas like padding, avatar, etc.
+        const hasText = Array.from(target.childNodes).some(
+          (node) =>
+            node.nodeType === Node.TEXT_NODE &&
+            (node.textContent?.trim().length ?? 0) > 0
+        );
+        if (hasText) return;
         onReplyClick(evt as any);
       },
       [edit, onReplyClick]
