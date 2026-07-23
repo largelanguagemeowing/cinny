@@ -948,6 +948,8 @@ export const Message = as<'div', MessageProps>(
         // Don't interfere with interactive elements
         const target = evt.target as HTMLElement;
         if (target.closest('a, button, input, textarea, [contenteditable]')) return;
+        // Don't trigger reply when double-clicking on text (which selects a word)
+        if (!window.getSelection()?.isCollapsed) return;
         onReplyClick(evt as any);
       },
       [edit, onReplyClick]
