@@ -16,6 +16,8 @@ import { usePreviousValue } from '../../hooks/usePreviousValue';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { getInboxInvitesPath, getInboxNotificationsPath } from '../pathUtils';
 import {
+  getEventBodyForNotification,
+  getMemberAvatarMxc,
   getMemberDisplayName,
   getNotificationType,
   getUnreadInfo,
@@ -27,6 +29,8 @@ import { useSelectedRoom } from '../../hooks/router/useSelectedRoom';
 import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { migrateGifFavorites } from '../../state/gifFavorites';
+import { roomToParentsAtom } from '../../state/room/roomToParents';
+import { mDirectAtom } from '../../state/mDirectList';
 
 function GifFavoritesMigration() {
   const mx = useMatrixClient();
@@ -142,10 +146,11 @@ function InviteNotifications() {
 
 function MessageNotifications() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const notifRef = useRef<Notification>();
   const unreadCacheRef = useRef<Map<string, UnreadInfo>>(new Map());
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
+  const roomToParents = useAtomValue(roomToParentsAtom);
+  const mDirects = useAtomValue(mDirectAtom);
   const [showNotifications] = useSetting(settingsAtom, 'showNotifications');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
@@ -154,32 +159,19 @@ function MessageNotifications() {
   const selectedRoomId = useSelectedRoom();
 
   const notify = useCallback(
-    ({
-      roomName,
-      roomAvatar,
-      username,
-    }: {
-      roomName: string;
-      roomAvatar?: string;
-      username: string;
-      roomId: string;
-      eventId: string;
-    }) => {
-      const noti = new window.Notification(roomName, {
-        icon: roomAvatar,
-        badge: roomAvatar,
-        body: `New inbox notification from ${username}`,
+    ({ title, body, icon, tag }: { title: string; body: string; icon?: string; tag: string }) => {
+      const noti = new window.Notification(title, {
+        icon,
+        badge: icon,
+        body,
+        tag,
         silent: true,
       });
 
       noti.onclick = () => {
         if (!window.closed) navigate(getInboxNotificationsPath());
         noti.close();
-        notifRef.current = undefined;
       };
-
-      notifRef.current?.close();
-      notifRef.current = noti;
     },
     [navigate]
   );
@@ -225,16 +217,29 @@ function MessageNotifications() {
       }
 
       if (showNotifications && notificationPermission('granted')) {
-        const avatarMxc =
-          room.getAvatarFallbackMember()?.getMxcAvatarUrl() ?? room.getMxcAvatarUrl();
+        const senderName = getMemberDisplayName(room, sender) ?? getMxIdLocalPart(sender) ?? sender;
+        const senderAvatarMxc = getMemberAvatarMxc(room, sender) ?? room.getMxcAvatarUrl();
+        const isDM = mDirects.has(room.roomId);
+
+        let title: string;
+        if (isDM) {
+          title = senderName;
+        } else {
+          const roomName = room.name ?? 'Unknown';
+          const parentRoomId = roomToParents.get(room.roomId)?.values().next().value;
+          const parentName = parentRoomId ? mx.getRoom(parentRoomId)?.name : undefined;
+          title = parentName
+            ? `${senderName} (#${roomName}, ${parentName})`
+            : `${senderName} (#${roomName})`;
+        }
+
         notify({
-          roomName: room.name ?? 'Unknown',
-          roomAvatar: avatarMxc
-            ? mxcUrlToHttp(mx, avatarMxc, useAuthentication, 96, 96, 'crop') ?? undefined
+          title,
+          body: getEventBodyForNotification(mEvent),
+          icon: senderAvatarMxc
+            ? mxcUrlToHttp(mx, senderAvatarMxc, useAuthentication, 96, 96, 'crop') ?? undefined
             : undefined,
-          username: getMemberDisplayName(room, sender) ?? getMxIdLocalPart(sender) ?? sender,
-          roomId: room.roomId,
-          eventId,
+          tag: room.roomId,
         });
       }
 
@@ -255,6 +260,8 @@ function MessageNotifications() {
     notify,
     selectedRoomId,
     useAuthentication,
+    roomToParents,
+    mDirects,
   ]);
 
   return (

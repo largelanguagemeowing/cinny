@@ -359,6 +359,38 @@ export const parseReplyFormattedBody = (
   return `<mx-reply><blockquote>${replyToLink}${userLink}<br />${formattedBody}</blockquote></mx-reply>`;
 };
 
+// Plain-text preview for OS notification bodies; falls back to a label for non-text types.
+export const getEventBodyForNotification = (mEvent: MatrixEvent): string => {
+  if (mEvent.isRedacted()) return 'Message deleted';
+
+  const eventType = mEvent.getType();
+  if (eventType === MessageEvent.Sticker) return 'Sent a sticker';
+  if (eventType === MessageEvent.RoomMessageEncrypted) return 'Encrypted message';
+  if (eventType !== MessageEvent.RoomMessage) return '';
+
+  const content = mEvent.getContent();
+  const body = typeof content.body === 'string' ? trimReplyFromBody(content.body) : '';
+
+  switch (content.msgtype) {
+    case MsgType.Image:
+      return 'Sent an image';
+    case MsgType.Video:
+      return 'Sent a video';
+    case MsgType.Audio:
+      return 'Sent an audio message';
+    case MsgType.File:
+      return 'Sent a file';
+    case MsgType.Location:
+      return 'Shared a location';
+    case MsgType.Emote:
+      return body ? `* ${body}` : '';
+    case MsgType.Text:
+    case MsgType.Notice:
+    default:
+      return body;
+  }
+};
+
 export const getMemberDisplayName = (room: Room, userId: string): string | undefined => {
   const member = room.getMember(userId);
   const name = member?.rawDisplayName;
