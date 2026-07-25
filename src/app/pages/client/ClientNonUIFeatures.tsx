@@ -31,6 +31,7 @@ import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { migrateGifFavorites } from '../../state/gifFavorites';
 import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { mDirectAtom } from '../../state/mDirectList';
+import { useSpaceAutoJoinGlobal } from '../../hooks/useSpaceAutoJoinGlobal';
 
 function GifFavoritesMigration() {
   const mx = useMatrixClient();
@@ -272,6 +273,11 @@ function MessageNotifications() {
   );
 }
 
+function SpaceAutoJoinFeature() {
+  useSpaceAutoJoinGlobal();
+  return null;
+}
+
 type ClientNonUIFeaturesProps = {
   children: ReactNode;
 };
@@ -285,6 +291,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
       <FaviconUpdater />
       <InviteNotifications />
       <MessageNotifications />
+      <SpaceAutoJoinFeature />
       {children}
     </>
   );

@@ -1001,7 +1001,7 @@ function Spaces() {
       <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
         <SettingTile
           title="Auto Join Space Rooms"
-          description="Automatically join every room listed in a space when you open it, including rooms added later."
+          description="Automatically join every room listed in a space, including rooms added later."
           after={
             <Switch variant="Primary" value={autoJoinSpaceRooms} onChange={setAutoJoinSpaceRooms} />
           }

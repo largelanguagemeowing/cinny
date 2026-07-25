@@ -42,7 +42,7 @@ export function SpaceAutoJoin({ permissions }: SpaceAutoJoinProps) {
     >
       <SettingTile
         title="Auto Join Rooms"
-        description="Tell members' clients to automatically join all rooms of this space."
+        description="Tell members' clients to automatically join all rooms and subspaces of this space."
         after={
           <Box gap="200" alignItems="Center">
             {toggling && <Spinner variant="Secondary" />}

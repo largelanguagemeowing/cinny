@@ -37,7 +37,7 @@ import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { allRoomsAtom } from '../../state/room-list/roomList';
 import { getCanonicalAliasOrRoomId, rateLimitedActions } from '../../utils/matrix';
 import { getSpaceRoomPath } from '../../pages/pathUtils';
-import { SpaceAutoJoinContent, StateEvent } from '../../../types/matrix/room';
+import { StateEvent } from '../../../types/matrix/room';
 import { CanDropCallback, useDnDMonitor } from './DnD';
 import { ASCIILexicalTable, orderKeys } from '../../utils/ASCIILexicalTable';
 import { getStateEvent } from '../../utils/room';
@@ -53,8 +53,6 @@ import { AccountDataEvent } from '../../../types/matrix/accountData';
 import { useRoomMembers } from '../../hooks/useRoomMembers';
 import { SpaceHierarchy } from './SpaceHierarchy';
 import { useGetRoom } from '../../hooks/useGetRoom';
-import { useAutoJoinSpaceRooms } from '../../hooks/useAutoJoinSpaceRooms';
-import { useStateEvent } from '../../hooks/useStateEvent';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { getRoomPermissionsAPI } from '../../hooks/useRoomPermissions';
 import { getRoomCreatorsForRoomId } from '../../hooks/useRoomCreators';
@@ -166,7 +164,6 @@ export function Lobby() {
   const [heroSectionHeight, setHeroSectionHeight] = useState<number>();
   const [spaceRooms, setSpaceRooms] = useAtom(spaceRoomsAtom);
   const [isDrawer] = useSetting(settingsAtom, 'isPeopleDrawer');
-  const [autoJoinSpaceRooms] = useSetting(settingsAtom, 'autoJoinSpaceRooms');
   const screenSize = useScreenSizeContext();
   const [onTop, setOnTop] = useState(true);
   const [closedCategories, setClosedCategories] = useAtom(useClosedLobbyCategoriesAtom());
@@ -228,12 +225,6 @@ export function Lobby() {
   );
 
   const canDrop: CanDropCallback = useCanDropLobbyItem(space, roomsPowerLevels, getRoom);
-
-  const spaceAutoJoinEvent = useStateEvent(space, StateEvent.SpaceAutoJoin);
-  const spaceAutoJoin =
-    spaceAutoJoinEvent?.getContent<SpaceAutoJoinContent>().auto_join === true;
-
-  useAutoJoinSpaceRooms(hierarchy, getRoom, autoJoinSpaceRooms || spaceAutoJoin);
 
   const [reorderSpaceState, reorderSpace] = useAsyncCallback(
     useCallback(
