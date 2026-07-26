@@ -452,6 +452,15 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
     setPeopleDrawer(!peopleDrawer);
   };
 
+  let toggleLabel: string;
+  if (callView) {
+    toggleLabel = 'Members';
+  } else if (direct) {
+    toggleLabel = peopleDrawer ? 'Hide Profile' : 'Show Profile';
+  } else {
+    toggleLabel = peopleDrawer ? 'Hide Members' : 'Show Members';
+  }
+
   return (
     <PageHeader
       className={ContainerColor({ variant: 'Surface' })}
@@ -615,11 +624,7 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               offset={4}
               tooltip={
                 <Tooltip>
-                  {callView ? (
-                    <Text>Members</Text>
-                  ) : (
-                    <Text>{peopleDrawer ? 'Hide Members' : 'Show Members'}</Text>
-                  )}
+                  <Text>{toggleLabel}</Text>
                 </Tooltip>
               }
             >

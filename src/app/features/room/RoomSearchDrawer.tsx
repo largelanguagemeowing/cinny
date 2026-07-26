@@ -20,8 +20,10 @@ import classNames from 'classnames';
 
 import * as css from './RoomSearchDrawer.css';
 import { MembersDrawer } from './MembersDrawer';
+import { DmProfileDrawer } from './DmProfileDrawer';
 import { ContainerColor } from '../../styles/ContainerColor.css';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
+import { useIsDirectRoom } from '../../hooks/useRoom';
 import { useSpaceOptionally } from '../../hooks/useSpace';
 import { useRoomNavigate } from '../../hooks/useRoomNavigate';
 import { useSetSetting, useSetting } from '../../state/hooks/settings';
@@ -202,6 +204,7 @@ type RoomSearchDrawerProps = {
 export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
   const mx = useMatrixClient();
   const space = useSpaceOptionally();
+  const direct = useIsDirectRoom();
   const { navigateRoom } = useRoomNavigate();
   const setPeopleDrawer = useSetSetting(settingsAtom, 'isPeopleDrawer');
 
@@ -236,6 +239,23 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
     navigateRoom(roomId, eventId);
   };
 
+  let drawerContent: React.ReactNode;
+  if (searchTerm) {
+    drawerContent = <SearchResults term={searchTerm} rooms={searchRooms} onOpen={handleOpen} />;
+  } else if (direct) {
+    drawerContent = (
+      <Box grow="Yes">
+        <DmProfileDrawer room={room} />
+      </Box>
+    );
+  } else {
+    drawerContent = (
+      <Box grow="Yes">
+        <MembersDrawer room={room} members={members} hideHeader />
+      </Box>
+    );
+  }
+
   return (
     <Box
       className={classNames(
@@ -263,7 +283,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
                 ref={triggerRef}
                 variant="Background"
                 onClick={() => setPeopleDrawer(false)}
-                aria-label="Close member list"
+                aria-label={direct ? 'Close profile' : 'Close member list'}
               >
                 <Icon src={Icons.Cross} />
               </IconButton>
@@ -272,13 +292,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
         </Box>
       </Header>
 
-      {searchTerm ? (
-        <SearchResults term={searchTerm} rooms={searchRooms} onOpen={handleOpen} />
-      ) : (
-        <Box grow="Yes">
-          <MembersDrawer room={room} members={members} hideHeader />
-        </Box>
-      )}
+      {drawerContent}
     </Box>
   );
 }
