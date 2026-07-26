@@ -22,6 +22,11 @@ export const useUserRichPresence = (userId: string): RichPresence | undefined =>
 
     setRichPresence(undefined);
 
+    if (!userId)
+      return () => {
+        active = false;
+      };
+
     const handleProfileUpdate = (
       updatedUserId: string,
       profile: Record<string, unknown> | null

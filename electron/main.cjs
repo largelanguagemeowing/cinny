@@ -1,12 +1,45 @@
-const { app, BrowserWindow, shell, Menu, session, desktopCapturer } = require('electron');
+const { app, BrowserWindow, shell, Menu, session, desktopCapturer, ipcMain } = require('electron');
 const path = require('path');
 const { registerAppScheme, registerAppHandler, APP_ORIGIN } = require('./app-protocol.cjs');
 const { buildAppMenu } = require('./menu.cjs');
+const { createRichPresenceServer } = require('./rich-presence.cjs');
 
 // dist sits next to electron/ in both dev and the packaged asar
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 let mainWindow = null;
+
+// MSC4320 rich-presence publisher: impersonates Discord's local RPC pipe and
+// forwards captured activity to the renderer to publish as the user's profile
+// field. Created lazily on first request from the renderer (off by default).
+let rpServer = null;
+const ensureRichPresenceServer = () => {
+  if (!rpServer) {
+    rpServer = createRichPresenceServer({
+      onActivity: (activity) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('rich-presence:activity', activity);
+        }
+      },
+    });
+  }
+  return rpServer;
+};
+
+ipcMain.handle('rich-presence:start', async () => {
+  try {
+    return await ensureRichPresenceServer().start();
+  } catch (err) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+});
+ipcMain.handle('rich-presence:stop', async () => {
+  try {
+    await rpServer?.stop();
+  } catch {
+    // ignore
+  }
+});
 
 function isInternalUrl(url) {
   return url.startsWith(APP_ORIGIN);
@@ -96,5 +129,9 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
+  });
+
+  app.on('before-quit', () => {
+    rpServer?.stop();
   });
 }

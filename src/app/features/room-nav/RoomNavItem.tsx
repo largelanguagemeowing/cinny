@@ -53,7 +53,9 @@ import { getRoomCreatorsForRoomId, useRoomCreators } from '../../hooks/useRoomCr
 import { getRoomPermissionsAPI, useRoomPermissions } from '../../hooks/useRoomPermissions';
 import { InviteUserPrompt } from '../../components/invite-user-prompt';
 import { useUserPresence } from '../../hooks/useUserPresence';
+import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { AvatarPresence, PresenceBadge } from '../../components/presence';
+import { PresenceStatus } from '../../components/presence/PresenceStatus';
 import { useRoomName } from '../../hooks/useRoomMeta';
 import { useCallMembers, useCallSession } from '../../hooks/useCall';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
@@ -272,12 +274,8 @@ export function RoomNavItem({
   const roomName = useRoomName(room);
 
   const [showPresenceInDMList] = useSetting(settingsAtom, 'showPresenceInDMList');
-  const dmPartnerId =
-    direct && showAvatar
-      ? room.getAvatarFallbackMember()?.userId
-      : undefined;
-  const presenceUserId =
-    dmPartnerId && dmPartnerId !== mx.getUserId() ? dmPartnerId : '';
+  const dmPartnerId = direct && showAvatar ? room.getAvatarFallbackMember()?.userId : undefined;
+  const presenceUserId = dmPartnerId && dmPartnerId !== mx.getUserId() ? dmPartnerId : '';
   const presence = useUserPresence(presenceUserId);
   const hasPresence =
     showPresenceInDMList && direct && showAvatar && presence && presence.lastActiveTs !== 0;
@@ -285,6 +283,9 @@ export function RoomNavItem({
     <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
   ) : undefined;
   const statusMsg = hasPresence && presence.status ? presence.status : undefined;
+  // Rich presence surfaces in the status slot even without m.presence data;
+  // the hook is a no-op for the empty userId used by non-DM rooms.
+  const richPresence = useUserRichPresence(presenceUserId);
 
   const voiceMatch = roomName.match(VOICE_CHANNEL_PREFIX_RE);
   const isVoiceChannel = !!voiceMatch;
@@ -395,16 +396,12 @@ export function RoomNavItem({
               <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
                 {displayName}
               </Text>
-              {statusMsg && (
-                <Text
+              {(statusMsg || richPresence) && (
+                <PresenceStatus
                   className={css.DmStatus}
-                  size="T200"
-                  priority="300"
-                  truncate
-                  title={statusMsg}
-                >
-                  {statusMsg}
-                </Text>
+                  status={statusMsg}
+                  richPresence={richPresence}
+                />
               )}
             </Box>
             {!optionsVisible && !unread && !selected && typingMember.length > 0 && (

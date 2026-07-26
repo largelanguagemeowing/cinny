@@ -1,11 +1,38 @@
 // Fork-only: distinguishes the Electron desktop build from the web build.
 // The desktop preload exposes `window.cinnyDesktop` (see electron/preload.cjs).
 
+// A Discord `SET_ACTIVITY` payload (the fields we read), as normalised by the
+// main-process impersonator (see electron/rich-presence.cjs). `null` = clear.
+export type DiscordRichPresenceActivity = {
+  type?: number;
+  name?: string;
+  details?: string;
+  state?: string;
+  application_id?: string;
+  timestamps?: { start?: number; end?: number };
+  assets?: {
+    large_image?: string;
+    large_text?: string;
+    small_image?: string;
+    small_text?: string;
+  };
+};
+
+export type RichPresenceBridgeStartResult =
+  | { ok: true; path: string; index: number }
+  | { ok: false; error: string };
+
 declare global {
   interface Window {
     cinnyDesktop?: {
       platform: string;
       versions: { electron: string; chrome: string; node: string };
+      supportsRichPresenceBridge?: true;
+      startRichPresenceBridge?: () => Promise<RichPresenceBridgeStartResult>;
+      stopRichPresenceBridge?: () => Promise<void>;
+      onRichPresenceActivity?: (
+        cb: (activity: DiscordRichPresenceActivity | null) => void
+      ) => () => void;
     };
   }
 }

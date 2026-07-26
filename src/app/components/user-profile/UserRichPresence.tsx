@@ -153,9 +153,11 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
               <Text size="T300" priority="300" truncate title={presence.artist}>
                 {presence.artist}
               </Text>
-              <Text size="T200" priority="300" truncate title={presence.album}>
-                {presence.album}
-              </Text>
+              {presence.album && (
+                <Text size="T200" priority="300" truncate title={presence.album}>
+                  {presence.album}
+                </Text>
+              )}
               {presence.progress && <MediaProgress progress={presence.progress} />}
             </>
           ) : (

@@ -48,7 +48,9 @@ import { millify } from '../../plugins/millify';
 import { ScrollTopContainer } from '../../components/scroll-top-container';
 import { UserAvatar } from '../../components/user-avatar';
 import { AvatarPresence, PresenceBadge } from '../../components/presence';
+import { PresenceStatus } from '../../components/presence/PresenceStatus';
 import { useUserPresence } from '../../hooks/useUserPresence';
+import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { useRoomTypingMember } from '../../hooks/useRoomTypingMembers';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useMembershipFilter, useMembershipFilterMenu } from '../../hooks/useMemberFilter';
@@ -136,6 +138,7 @@ function MemberItem({
     <PresenceBadge presence={presence.presence} status={presence.status} size="200" />
   ) : undefined;
   const statusMsg = hasPresence && presence.status ? presence.status : undefined;
+  const richPresence = useUserRichPresence(member.userId);
 
   return (
     <MenuItem
@@ -169,10 +172,12 @@ function MemberItem({
         <Text size="T400" truncate>
           {name}
         </Text>
-        {statusMsg && (
-          <Text className={css.MemberStatus} size="T200" priority="300" truncate title={statusMsg}>
-            {statusMsg}
-          </Text>
+        {(statusMsg || richPresence) && (
+          <PresenceStatus
+            className={css.MemberStatus}
+            status={statusMsg}
+            richPresence={richPresence}
+          />
         )}
       </Box>
     </MenuItem>

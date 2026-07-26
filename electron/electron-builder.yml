@@ -14,6 +14,7 @@ files:
   - electron/preload.cjs
   - electron/app-protocol.cjs
   - electron/menu.cjs
+  - electron/rich-presence.cjs
   - package.json
   - '!node_modules/**/*'
 

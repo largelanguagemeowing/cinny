@@ -28,6 +28,10 @@ export interface Settings {
   pageZoom: number;
   hideActivity: boolean;
 
+  // MSC4320: impersonate Discord's local RPC pipe and publish activity as the
+  // user's rich presence (desktop only, off by default).
+  publishRichPresence: boolean;
+
   isPeopleDrawer: boolean;
   showPresenceInMemberList: boolean;
   showPresenceInDMList: boolean;
@@ -69,6 +73,8 @@ const defaultSettings: Settings = {
   twitterEmoji: false,
   pageZoom: 100,
   hideActivity: false,
+
+  publishRichPresence: false,
 
   isPeopleDrawer: true,
   showPresenceInMemberList: true,

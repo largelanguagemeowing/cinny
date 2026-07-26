@@ -28,6 +28,7 @@ import { ServerConfigsLoader } from '../../components/ServerConfigsLoader';
 import { CapabilitiesProvider } from '../../hooks/useCapabilities';
 import { MediaConfigProvider } from '../../hooks/useMediaConfig';
 import { MatrixClientProvider } from '../../hooks/useMatrixClient';
+import { RichPresencePublisher } from '../../hooks/useRichPresencePublisher';
 import { SpecVersions } from './SpecVersions';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { useSyncState } from '../../hooks/useSyncState';
@@ -219,6 +220,7 @@ export function ClientRoot({ children }: ClientRootProps) {
           <ClientRootLoading />
         ) : (
           <MatrixClientProvider value={mx}>
+            <RichPresencePublisher />
             <ServerConfigsLoader>
               {(serverConfigs) => (
                 <CapabilitiesProvider value={serverConfigs.capabilities ?? {}}>

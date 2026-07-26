@@ -17,7 +17,7 @@ export type RichPresenceProgress = {
 export type MediaRichPresence = {
   type: 'media';
   artist: string;
-  album: string;
+  album?: string;
   track: string;
   progress?: RichPresenceProgress;
   coverArt?: string;
@@ -63,7 +63,7 @@ export const parseRichPresence = (value: unknown): RichPresence | undefined => {
     const artist = optionalString(value.artist);
     const album = optionalString(value.album);
     const track = optionalString(value.track);
-    if (!artist || !album || !track) return undefined;
+    if (!artist || !track) return undefined;
 
     return {
       type: 'media',
