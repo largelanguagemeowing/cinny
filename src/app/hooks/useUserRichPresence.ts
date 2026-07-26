@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useAtom } from 'jotai';
 import { ClientEvent } from 'matrix-js-sdk';
 import {
   getProfileRichPresence,
@@ -7,6 +8,7 @@ import {
   RichPresence,
 } from '../../types/matrix/richPresence';
 import { useMatrixClient } from './useMatrixClient';
+import { userRichPresenceAtomFamily } from '../state/richPresence';
 
 const hasRichPresenceField = (profile: Record<string, unknown>): boolean =>
   Object.prototype.hasOwnProperty.call(profile, MSC4320_RPC) ||
@@ -18,18 +20,18 @@ const REFRESH_INTERVAL = 3 * 60 * 1000;
 
 export const useUserRichPresence = (userId: string): RichPresence | undefined => {
   const mx = useMatrixClient();
-  const [richPresence, setRichPresence] = useState<RichPresence>();
+  const [richPresence, setRichPresence] = useAtom(userRichPresenceAtomFamily(userId));
 
   useEffect(() => {
     let active = true;
     let updateVersion = 0;
 
-    setRichPresence(undefined);
-
-    if (!userId)
+    if (!userId) {
+      setRichPresence(undefined);
       return () => {
         active = false;
       };
+    }
 
     const handleProfileUpdate = (
       updatedUserId: string,
@@ -72,7 +74,7 @@ export const useUserRichPresence = (userId: string): RichPresence | undefined =>
       clearInterval(heartbeat);
       mx.removeListener(ClientEvent.UserProfileUpdate, handleProfileUpdate);
     };
-  }, [mx, userId]);
+  }, [mx, userId, setRichPresence]);
 
   // Re-fetch when the current media track reaches its end time, so we pick up
   // the next song promptly instead of waiting for the next heartbeat.
@@ -97,7 +99,7 @@ export const useUserRichPresence = (userId: string): RichPresence | undefined =>
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [mx, userId, richPresence]);
+  }, [mx, userId, richPresence, setRichPresence]);
 
   return richPresence;
 };
