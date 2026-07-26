@@ -73,6 +73,7 @@
     "jszip": "3.10.1",
     "linkify-react": "4.3.2",
     "linkifyjs": "4.3.2",
+    "lucide-react": "1.27.0",
     "matrix-js-sdk": "41.7.0",
     "matrix-widget-api": "1.16.1",
     "millify": "6.1.0",
