@@ -8,6 +8,7 @@ import { CallMembership } from 'matrix-js-sdk/lib/matrixrtc/CallMembership';
 import { useEffect, useState } from 'react';
 import { MatrixRTCSessionManagerEvents } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSessionManager';
 import { useMatrixClient } from './useMatrixClient';
+import { getSpaceChildren } from '../utils/room';
 
 export const useCallSession = (room: Room): MatrixRTCSession => {
   const mx = useMatrixClient();
@@ -57,4 +58,37 @@ export const useCallMembers = (session: MatrixRTCSession): CallMembership[] => {
   useCallMembersChange(session, setMemberships);
 
   return memberships;
+};
+
+export const useSpaceHasCall = (space: Room): boolean => {
+  const mx = useMatrixClient();
+  const [hasCall, setHasCall] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const childRoomIds = getSpaceChildren(space);
+      const found = childRoomIds.some((roomId) => {
+        const room = mx.getRoom(roomId);
+        if (!room) return false;
+        try {
+          return mx.matrixRTC.getRoomSession(room).memberships.length > 0;
+        } catch {
+          return false;
+        }
+      });
+      setHasCall(found);
+    };
+
+    mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionStarted, check);
+    mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionEnded, check);
+
+    check();
+
+    return () => {
+      mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionStarted, check);
+      mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionEnded, check);
+    };
+  }, [mx, space]);
+
+  return hasCall;
 };

@@ -23,13 +23,14 @@ import { useAtom, useAtomValue } from 'jotai';
 import { NavItem, NavItemContent, NavItemOptions, NavLink } from '../../components/nav';
 import { UnreadBadge, UnreadBadgeCenter } from '../../components/unread-badge';
 import { RoomAvatar, RoomIcon } from '../../components/room-avatar';
-import { getDirectRoomAvatarUrl, getRoomAvatarUrl, getStateEvent } from '../../utils/room';
+import { CallMembership } from 'matrix-js-sdk/lib/matrixrtc/CallMembership';
+import { getDirectRoomAvatarUrl, getMemberAvatarMxc, getMemberDisplayName, getRoomAvatarUrl, getStateEvent } from '../../utils/room';
 import { nameInitials } from '../../utils/common';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useRoomUnread } from '../../state/hooks/unread';
 import { roomToUnreadAtom } from '../../state/room/roomToUnread';
 import { getPowersLevelFromMatrixEvent, usePowerLevels } from '../../hooks/usePowerLevels';
-import { copyToClipboard } from '../../utils/dom';
+import { copyToClipboard, getMouseEventCords } from '../../utils/dom';
 import { markAsRead } from '../../utils/notifications';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import { LeaveRoomPrompt } from '../../components/leave-room-prompt';
@@ -37,9 +38,11 @@ import { useRoomTypingMember } from '../../hooks/useRoomTypingMembers';
 import { TypingIndicator } from '../../components/typing-indicator';
 import { stopPropagation } from '../../utils/keyboard';
 import { getMatrixToRoom } from '../../plugins/matrix-to';
-import { getCanonicalAliasOrRoomId, isRoomAlias } from '../../utils/matrix';
+import { getCanonicalAliasOrRoomId, getMxIdLocalPart, isRoomAlias, mxcUrlToHttp } from '../../utils/matrix';
 import { getViaServers } from '../../plugins/via-servers';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { UserAvatar } from '../../components/user-avatar';
+import { useOpenUserRoomProfile } from '../../state/hooks/userRoomProfile';
 import { useSetting } from '../../state/hooks/settings';
 import { settingsAtom } from '../../state/settings';
 import { useOpenRoomSettings } from '../../state/hooks/roomSettings';
@@ -244,6 +247,63 @@ function CallChatToggle() {
   );
 }
 
+type CallNavItemMembersProps = {
+  room: Room;
+  members: CallMembership[];
+};
+function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
+  const mx = useMatrixClient();
+  const useAuthentication = useMediaAuthentication();
+  const openUserProfile = useOpenUserRoomProfile();
+
+  return (
+    <Box direction="Column" gap="100" style={{ padding: `${config.space.S100} 0 ${config.space.S100} ${config.space.S500}` }}>
+      {members.map((callMember) => {
+        const userId = callMember.sender;
+        if (!userId) return null;
+        const name =
+          getMemberDisplayName(room, userId) ?? getMxIdLocalPart(userId) ?? userId;
+        const avatarMxc = getMemberAvatarMxc(room, userId);
+        const avatarUrl = avatarMxc
+          ? mxcUrlToHttp(mx, avatarMxc, useAuthentication, 96, 96) ?? undefined
+          : undefined;
+
+        return (
+          <Box
+            key={callMember.memberId}
+            as="button"
+            className={css.CallNavItemMember}
+            alignItems="Center"
+            gap="200"
+            shrink="No"
+            onClick={(evt: React.MouseEvent<HTMLButtonElement>) =>
+              openUserProfile(
+                room.roomId,
+                undefined,
+                userId,
+                getMouseEventCords(evt.nativeEvent),
+                'Right'
+              )
+            }
+          >
+            <Avatar size="200" radii="400">
+              <UserAvatar
+                userId={userId}
+                src={avatarUrl}
+                alt={name}
+                renderFallback={() => <Icon size="50" src={Icons.User} filled />}
+              />
+            </Avatar>
+            <Text size="T300" priority="300" truncate>
+              {name}
+            </Text>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 type RoomNavItemProps = {
   room: Room;
   selected: boolean;
@@ -384,53 +444,48 @@ export function RoomNavItem({
       {...hoverProps}
       {...focusWithinProps}
     >
-      <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
-        <NavItemContent>
-          <Box as="span" grow="Yes" alignItems="Center" gap="200">
-            <AvatarPresence variant="Background" badge={presenceBadge}>
-              <Avatar size="200" radii="400">
-                {avatarContent}
-              </Avatar>
-            </AvatarPresence>
-            <Box as="span" grow="Yes" direction="Column">
-              <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
-                {displayName}
-              </Text>
-              {(statusMsg || richPresence) && (
-                <PresenceStatus
-                  className={css.DmStatus}
-                  status={statusMsg}
-                  richPresence={richPresence}
-                />
-              )}
-            </Box>
-            {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
-              <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
-                <TypingIndicator size="300" disableAnimation />
-              </Badge>
-            )}
-            {!optionsVisible && unread && (
-              <UnreadBadgeCenter>
-                <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
-              </UnreadBadgeCenter>
-            )}
-            {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
-              <Icon
-                size="50"
-                src={getRoomNotificationModeIcon(notificationMode)}
-                aria-label={notificationMode}
-              />
-            )}
-            {callMembers.length > 0 && (
-              <Badge variant="Critical" fill="Solid" size="400">
-                <Text as="span" size="L400" truncate>
-                  {callMembers.length} Live
-                </Text>
-              </Badge>
-            )}
-          </Box>
-        </NavItemContent>
-      </NavLink>
+      <Box direction="Column" style={{ width: '100%' }}>
+        <Box direction="Row" alignItems="Center">
+          <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
+            <NavItemContent>
+              <Box as="span" grow="Yes" alignItems="Center" gap="200">
+                <AvatarPresence variant="Background" badge={presenceBadge}>
+                  <Avatar size="200" radii="400">
+                    {avatarContent}
+                  </Avatar>
+                </AvatarPresence>
+                <Box as="span" grow="Yes" direction="Column">
+                  <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
+                    {displayName}
+                  </Text>
+                  {(statusMsg || richPresence) && (
+                    <PresenceStatus
+                      className={css.DmStatus}
+                      status={statusMsg}
+                      richPresence={richPresence}
+                    />
+                  )}
+                </Box>
+                {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
+                  <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
+                    <TypingIndicator size="300" disableAnimation />
+                  </Badge>
+                )}
+                {!optionsVisible && unread && (
+                  <UnreadBadgeCenter>
+                    <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+                  </UnreadBadgeCenter>
+                )}
+                {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
+                  <Icon
+                    size="50"
+                    src={getRoomNotificationModeIcon(notificationMode)}
+                    aria-label={notificationMode}
+                  />
+                )}
+              </Box>
+            </NavItemContent>
+          </NavLink>
       {optionsVisible && (
         <NavItemOptions>
           {selected && (callEmbed?.roomId === room.roomId || room.isCallRoom()) && (
@@ -479,6 +534,11 @@ export function RoomNavItem({
           </PopOut>
         </NavItemOptions>
       )}
+        </Box>
+        {callMembers.length > 0 && (
+          <CallNavItemMembers room={room} members={callMembers} />
+        )}
+      </Box>
     </NavItem>
   );
 }

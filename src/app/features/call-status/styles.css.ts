@@ -1,8 +1,27 @@
-import { style } from '@vanilla-extract/css';
+import { keyframes, style } from '@vanilla-extract/css';
 import { color, config, toRem } from 'folds';
 
-export const LiveChipText = style({
-  color: color.Critical.Main,
+const SpeakerPulse = keyframes({
+  '0%, 100%': {
+    boxShadow: `0 0 0 0 transparent`,
+  },
+  '50%': {
+    boxShadow: `0 0 6px 1px ${color.Success.Main}`,
+  },
+});
+
+export const LiveSpeakerIcon = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: color.Success.Main,
+  borderRadius: '50%',
+  animation: `${SpeakerPulse} 2s ease-in-out infinite`,
+});
+
+export const LiveTimer = style({
+  color: color.Success.Main,
+  fontVariantNumeric: 'tabular-nums',
 });
 
 export const CallStatus = style([

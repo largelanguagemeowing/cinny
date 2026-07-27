@@ -12,6 +12,8 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Badge,
+  color,
   Icon,
   IconButton,
   Icons,
@@ -81,6 +83,7 @@ import { useOpenedSidebarFolderAtom } from '../../../state/hooks/openedSidebarFo
 import { usePowerLevels } from '../../../hooks/usePowerLevels';
 import { useRoomsUnread } from '../../../state/hooks/unread';
 import { roomToUnreadAtom } from '../../../state/room/roomToUnread';
+import { useSpaceHasCall } from '../../../hooks/useCall';
 import { markAsRead } from '../../../utils/notifications';
 import { copyToClipboard } from '../../../utils/dom';
 import { stopPropagation } from '../../../utils/keyboard';
@@ -445,6 +448,8 @@ function SpaceTab({
   const dropState = useDropTarget(spaceDraggable, targetRef);
   const dropType = dropState?.type;
 
+  const hasCall = useSpaceHasCall(space);
+
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleContextMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -493,6 +498,29 @@ function SpaceTab({
             <SidebarItemBadge hasCount={unread.total > 0}>
               <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
             </SidebarItemBadge>
+          )}
+          {hasCall && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                transform: 'translate(25%, 25%)',
+                zIndex: 1,
+                display: 'flex',
+                padding: config.borderWidth.B600,
+                backgroundColor: color.Background.Container,
+                borderRadius: config.radii.Pill,
+              }}
+            >
+              <Badge variant="Success" fill="Solid" radii="Pill" size="200">
+                <Icon
+                  size="50"
+                  src={Icons.VolumeHigh}
+                  style={{ color: color.Success.OnMain }}
+                />
+              </Badge>
+            </div>
           )}
           {menuAnchor && (
             <PopOut
