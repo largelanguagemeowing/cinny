@@ -1,5 +1,6 @@
 import { Room } from 'matrix-js-sdk';
-import { RoomEvent } from 'matrix-js-sdk';
+import { EventType } from 'matrix-js-sdk/lib/@types/event';
+import { MatrixEvent } from 'matrix-js-sdk/lib/models/event';
 import {
   MatrixRTCSession,
   MatrixRTCSessionEvent,
@@ -10,7 +11,6 @@ import { useEffect, useState } from 'react';
 import { MatrixRTCSessionManagerEvents } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSessionManager';
 import { useMatrixClient } from './useMatrixClient';
 import { getSpaceChildren } from '../utils/room';
-import { StateEvent } from '../../types/matrix/room';
 
 export const useCallSession = (room: Room): MatrixRTCSession => {
   const mx = useMatrixClient();
@@ -68,48 +68,63 @@ export const useSpaceHasCall = (space: Room): boolean => {
 
   useEffect(() => {
     const childRoomIds = getSpaceChildren(space);
+    let cancelled = false;
+    let stateVersion = 0;
 
-    const check = () => {
-      const found = childRoomIds.some((roomId) => {
+    const hasLocalCall = () =>
+      childRoomIds.some((roomId) => {
         const room = mx.getRoom(roomId);
         if (!room) return false;
-        // Check MatrixRTC session memberships first
-        try {
-          if (mx.matrixRTC.getRoomSession(room).memberships.length > 0) return true;
-        } catch {
-          // ignore
-        }
-        // Fallback: directly check room state events for call memberships
-        const callMemberEvents = room.currentState.getStateEvents(
-          StateEvent.GroupCallMemberPrefix
-        );
-        return callMemberEvents.length > 0;
+        return mx.matrixRTC.getRoomSession(room).memberships.length > 0;
       });
-      setHasCall(found);
+
+    const check = () => {
+      stateVersion += 1;
+      setHasCall(hasLocalCall());
+    };
+
+    const fetchCallState = async () => {
+      const version = stateVersion;
+      const results = await Promise.all(
+        childRoomIds.map(async (roomId) => {
+          try {
+            const state = await mx.roomState(roomId);
+            const membershipEvents = state.filter(
+              (event) =>
+                event.type === EventType.GroupCallMemberPrefix ||
+                event.type === EventType.RTCMembership
+            );
+            const memberships = await Promise.all(
+              membershipEvents.map(async (event) => {
+                try {
+                  return await CallMembership.parseFromEvent(new MatrixEvent(event));
+                } catch {
+                  return undefined;
+                }
+              })
+            );
+            return memberships.some((membership) => membership && !membership.isExpired());
+          } catch {
+            return false;
+          }
+        })
+      );
+
+      if (!cancelled && version === stateVersion) {
+        setHasCall(hasLocalCall() || results.some(Boolean));
+      }
     };
 
     mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionStarted, check);
     mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionEnded, check);
 
-    // Also listen for room state events to catch call member changes
-    // that the RTC session manager might miss on initial sync
-    const onRoomState = (event: any) => {
-      if (event.getType() === StateEvent.GroupCallMemberPrefix) {
-        check();
-      }
-    };
-    mx.on(RoomEvent.State, onRoomState);
-
     check();
-
-    // Re-check after a short delay to catch state that arrives after mount
-    const timer = setTimeout(check, 5000);
+    fetchCallState();
 
     return () => {
+      cancelled = true;
       mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionStarted, check);
       mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionEnded, check);
-      mx.off(RoomEvent.State, onRoomState);
-      clearTimeout(timer);
     };
   }, [mx, space]);
 
