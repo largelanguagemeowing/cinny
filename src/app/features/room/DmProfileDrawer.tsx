@@ -61,7 +61,7 @@ export function DmProfileDrawer({ room }: DmProfileDrawerProps) {
     : undefined;
 
   return (
-    <Box className={ContainerColor({ variant: 'Background' })} shrink="No" direction="Column">
+    <Box className={ContainerColor({ variant: 'Background' })} grow="Yes" direction="Column">
       <Box grow="Yes" style={{ position: 'relative', overflow: 'hidden' }}>
         <Scroll variant="Background" size="300" visibility="Hover" hideTrack>
           <Box direction="Column">

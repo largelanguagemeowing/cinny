@@ -15,20 +15,27 @@ export const UserHero = style({
 });
 
 export const UserHeroCoverContainer = style({
+  position: 'relative',
   aspectRatio: '3 / 1',
   overflow: 'hidden',
 });
 export const UserHeroCover = style({
-  height: '100%',
+  position: 'absolute',
+  inset: 0,
   width: '100%',
+  height: '100%',
   objectFit: 'cover',
   filter: 'blur(16px)',
   transform: 'scale(2)',
+  display: 'block',
 });
 export const UserHeroBanner = style({
-  height: '100%',
+  position: 'absolute',
+  inset: 0,
   width: '100%',
+  height: '100%',
   objectFit: 'cover',
+  display: 'block',
 });
 
 export const UserHeroAvatarContainer = style({
