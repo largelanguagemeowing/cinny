@@ -12,7 +12,7 @@ import { useMatrixClient } from './useMatrixClient';
 import { getOrphanParents, guessPerfectParent } from '../utils/room';
 import { roomToParentsAtom } from '../state/room/roomToParents';
 import { mDirectAtom } from '../state/mDirectList';
-import { useSelectedSpace } from './router/useSelectedSpace';
+import { useRouteSelectedSpace } from './router/useSelectedSpace';
 import { settingsAtom } from '../state/settings';
 import { useSetting } from '../state/hooks/settings';
 
@@ -21,7 +21,7 @@ export const useRoomNavigate = () => {
   const mx = useMatrixClient();
   const roomToParents = useAtomValue(roomToParentsAtom);
   const mDirects = useAtomValue(mDirectAtom);
-  const spaceSelectedId = useSelectedSpace();
+  const spaceSelectedId = useRouteSelectedSpace();
   const [developerTools] = useSetting(settingsAtom, 'developerTools');
 
   const navigateSpace = useCallback(
