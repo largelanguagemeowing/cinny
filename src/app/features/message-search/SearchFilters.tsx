@@ -37,6 +37,7 @@ import {
   useAsyncSearch,
 } from '../../hooks/useAsyncSearch';
 import { DebounceOptions, useDebounce } from '../../hooks/useDebounce';
+import { useRankOrderTruncated } from './useMessageSearch';
 import { VirtualTile } from '../../components/virtualizer';
 import { stopPropagation } from '../../utils/keyboard';
 
@@ -47,6 +48,10 @@ type OrderButtonProps = {
 function OrderButton({ order, onChange }: OrderButtonProps) {
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
   const rankOrder = order === SearchOrderBy.Rank;
+  // Only a static pre-warning for servers we know truncate. Servers we cannot
+  // vouch for get the observation-based banner in MessageSearch instead, since
+  // there is nothing to warn about until their results actually run out.
+  const rankTruncated = useRankOrderTruncated();
 
   const setOrder = (o?: string) => {
     setMenuAnchor(undefined);
@@ -94,9 +99,11 @@ function OrderButton({ order, onChange }: OrderButtonProps) {
               >
                 <Box direction="Column">
                   <Text size="T300">Relevance</Text>
-                  <Text size="T200" priority="300">
-                    Cannot load more
-                  </Text>
+                  {rankTruncated && (
+                    <Text size="T200" priority="300">
+                      Limited results
+                    </Text>
+                  )}
                 </Box>
               </MenuItem>
             </div>

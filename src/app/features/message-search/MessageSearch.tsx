@@ -23,6 +23,7 @@ import { SearchInput } from './SearchInput';
 import { SearchFilters } from './SearchFilters';
 import {
   EncryptionNotice,
+  RankOrderNotice,
   SearchErrorNotice,
   SearchNotice,
   useEncryptedRooms,
@@ -260,13 +261,7 @@ export function MessageSearch({
       )}
 
       {msgSearchParams.term && rankOrder && (
-        <SearchNotice variant="SurfaceVariant">
-          <Text size="T300">Sorting by relevance shows a limited set of results.</Text>
-          <Text size="T200" priority="300">
-            Homeservers cannot paginate relevance-ranked search. Switch to Recent to load every
-            match.
-          </Text>
-        </SearchNotice>
+        <RankOrderNotice exhausted={status === 'success' && !hasNextPage} />
       )}
 
       {msgSearchParams.term &&
@@ -296,7 +291,8 @@ export function MessageSearch({
               <Text size="H5">{`Results for "${msgSearchParams.term}"`}</Text>
               {typeof totalCount === 'number' && (
                 <Text size="T200" priority="300">
-                  {`${totalCount} ${totalCount === 1 ? 'match' : 'matches'}`}
+                  {/* the spec only promises an approximate count */}
+                  {`~${totalCount} ${totalCount === 1 ? 'match' : 'matches'}`}
                 </Text>
               )}
             </Box>

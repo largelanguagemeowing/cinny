@@ -8,6 +8,7 @@ import {
 } from 'matrix-js-sdk';
 import { useCallback } from 'react';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
+import { ServerSoftware, useServerSoftware } from '../../hooks/useServerSoftware';
 
 export type ResultItem = {
   rank: number;
@@ -71,6 +72,16 @@ const parseSearchResult = (result: ISearchResponse): SearchResult => {
 
   return searchResult;
 };
+
+/**
+ * Whether the server truncates relevance-ordered search.
+ *
+ * The spec permits paginating `order_by: rank` -- it defines `next_batch` with no
+ * dependency on ordering -- but Synapse never emits one for it and caps the query
+ * at 500 rows. Treat any other implementation as capable until it proves otherwise.
+ */
+export const useRankOrderTruncated = (): boolean =>
+  useServerSoftware().software === ServerSoftware.Synapse;
 
 export type MessageSearchParams = {
   term?: string;

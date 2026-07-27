@@ -3,6 +3,8 @@ import { Box, Icon, IconSrc, Icons, Text, config } from 'folds';
 import { MatrixError } from 'matrix-js-sdk';
 import { ContainerColor } from '../../styles/ContainerColor.css';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
+import { useServerSoftware } from '../../hooks/useServerSoftware';
+import { useRankOrderTruncated } from './useMessageSearch';
 
 type NoticeVariant = 'Warning' | 'Critical' | 'SurfaceVariant';
 
@@ -72,6 +74,37 @@ export function EncryptionNotice({ searchedRooms, detailed }: EncryptionNoticePr
           messages, so they are absent from that index entirely.
         </Text>
       )}
+    </SearchNotice>
+  );
+}
+
+type RankOrderNoticeProps = {
+  /** the query has demonstrably run out of pages */
+  exhausted: boolean;
+};
+/**
+ * Warn up front on servers known to truncate relevance ordering; elsewhere stay
+ * quiet until the query has actually run dry, so we never assert a limit the
+ * server may not have.
+ */
+export function RankOrderNotice({ exhausted }: RankOrderNoticeProps) {
+  const { name } = useServerSoftware();
+  const truncated = useRankOrderTruncated();
+
+  if (!truncated && !exhausted) return null;
+
+  return (
+    <SearchNotice variant="SurfaceVariant">
+      <Text size="T300">
+        {truncated
+          ? `${
+              name ?? 'Your homeserver'
+            } returns a limited set of results when sorting by relevance.`
+          : 'Your homeserver returned every relevance-ranked result it will provide.'}
+      </Text>
+      <Text size="T200" priority="300">
+        Sort by Recent to page through all matches.
+      </Text>
     </SearchNotice>
   );
 }

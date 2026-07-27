@@ -107,7 +107,8 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
   if (status === 'pending') {
     resultsLabel = 'Searching...';
   } else if (typeof totalCount === 'number' && totalCount > loadedResults) {
-    resultsLabel = `${loadedResults} of ${totalCount} Results`;
+    // the spec only promises an approximate count
+    resultsLabel = `${loadedResults} of ~${totalCount} Results`;
   } else {
     resultsLabel = `${loadedResults} ${loadedResults === 1 ? 'Result' : 'Results'}`;
   }
