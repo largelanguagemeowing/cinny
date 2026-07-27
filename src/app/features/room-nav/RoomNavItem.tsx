@@ -441,51 +441,50 @@ export function RoomNavItem({
       aria-selected={selected}
       data-hover={!!menuAnchor}
       onContextMenu={handleContextMenu}
+      style={callMembers.length > 0 ? { flexWrap: 'wrap' } : undefined}
       {...hoverProps}
       {...focusWithinProps}
     >
-      <Box direction="Column" style={{ width: '100%' }}>
-        <Box direction="Row" alignItems="Center">
-          <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
-            <NavItemContent>
-              <Box as="span" grow="Yes" alignItems="Center" gap="200">
-                <AvatarPresence variant="Background" badge={presenceBadge}>
-                  <Avatar size="200" radii="400">
-                    {avatarContent}
-                  </Avatar>
-                </AvatarPresence>
-                <Box as="span" grow="Yes" direction="Column">
-                  <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
-                    {displayName}
-                  </Text>
-                  {(statusMsg || richPresence) && (
-                    <PresenceStatus
-                      className={css.DmStatus}
-                      status={statusMsg}
-                      richPresence={richPresence}
-                    />
-                  )}
-                </Box>
-                {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
-                  <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
-                    <TypingIndicator size="300" disableAnimation />
-                  </Badge>
-                )}
-                {!optionsVisible && unread && (
-                  <UnreadBadgeCenter>
-                    <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
-                  </UnreadBadgeCenter>
-                )}
-                {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
-                  <Icon
-                    size="50"
-                    src={getRoomNotificationModeIcon(notificationMode)}
-                    aria-label={notificationMode}
-                  />
-                )}
-              </Box>
-            </NavItemContent>
-          </NavLink>
+      <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
+        <NavItemContent>
+          <Box as="span" grow="Yes" alignItems="Center" gap="200">
+            <AvatarPresence variant="Background" badge={presenceBadge}>
+              <Avatar size="200" radii="400">
+                {avatarContent}
+              </Avatar>
+            </AvatarPresence>
+            <Box as="span" grow="Yes" direction="Column">
+              <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
+                {displayName}
+              </Text>
+              {(statusMsg || richPresence) && (
+                <PresenceStatus
+                  className={css.DmStatus}
+                  status={statusMsg}
+                  richPresence={richPresence}
+                />
+              )}
+            </Box>
+            {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
+              <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
+                <TypingIndicator size="300" disableAnimation />
+              </Badge>
+            )}
+            {!optionsVisible && unread && (
+              <UnreadBadgeCenter>
+                <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+              </UnreadBadgeCenter>
+            )}
+            {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
+              <Icon
+                size="50"
+                src={getRoomNotificationModeIcon(notificationMode)}
+                aria-label={notificationMode}
+              />
+            )}
+          </Box>
+        </NavItemContent>
+      </NavLink>
       {optionsVisible && (
         <NavItemOptions>
           {selected && (callEmbed?.roomId === room.roomId || room.isCallRoom()) && (
@@ -534,11 +533,11 @@ export function RoomNavItem({
           </PopOut>
         </NavItemOptions>
       )}
-        </Box>
-        {callMembers.length > 0 && (
+      {callMembers.length > 0 && (
+        <Box style={{ flexBasis: '100%', width: '100%' }}>
           <CallNavItemMembers room={room} members={callMembers} />
-        )}
-      </Box>
+        </Box>
+      )}
     </NavItem>
   );
 }

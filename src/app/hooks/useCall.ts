@@ -1,4 +1,5 @@
 import { Room } from 'matrix-js-sdk';
+import { RoomEvent } from 'matrix-js-sdk';
 import {
   MatrixRTCSession,
   MatrixRTCSessionEvent,
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { MatrixRTCSessionManagerEvents } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSessionManager';
 import { useMatrixClient } from './useMatrixClient';
 import { getSpaceChildren } from '../utils/room';
+import { StateEvent } from '../../types/matrix/room';
 
 export const useCallSession = (room: Room): MatrixRTCSession => {
   const mx = useMatrixClient();
@@ -65,16 +67,23 @@ export const useSpaceHasCall = (space: Room): boolean => {
   const [hasCall, setHasCall] = useState(false);
 
   useEffect(() => {
+    const childRoomIds = getSpaceChildren(space);
+
     const check = () => {
-      const childRoomIds = getSpaceChildren(space);
       const found = childRoomIds.some((roomId) => {
         const room = mx.getRoom(roomId);
         if (!room) return false;
+        // Check MatrixRTC session memberships first
         try {
-          return mx.matrixRTC.getRoomSession(room).memberships.length > 0;
+          if (mx.matrixRTC.getRoomSession(room).memberships.length > 0) return true;
         } catch {
-          return false;
+          // ignore
         }
+        // Fallback: directly check room state events for call memberships
+        const callMemberEvents = room.currentState.getStateEvents(
+          StateEvent.GroupCallMemberPrefix
+        );
+        return callMemberEvents.length > 0;
       });
       setHasCall(found);
     };
@@ -82,11 +91,25 @@ export const useSpaceHasCall = (space: Room): boolean => {
     mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionStarted, check);
     mx.matrixRTC.on(MatrixRTCSessionManagerEvents.SessionEnded, check);
 
+    // Also listen for room state events to catch call member changes
+    // that the RTC session manager might miss on initial sync
+    const onRoomState = (event: any) => {
+      if (event.getType() === StateEvent.GroupCallMemberPrefix) {
+        check();
+      }
+    };
+    mx.on(RoomEvent.State, onRoomState);
+
     check();
+
+    // Re-check after a short delay to catch state that arrives after mount
+    const timer = setTimeout(check, 5000);
 
     return () => {
       mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionStarted, check);
       mx.matrixRTC.off(MatrixRTCSessionManagerEvents.SessionEnded, check);
+      mx.off(RoomEvent.State, onRoomState);
+      clearTimeout(timer);
     };
   }, [mx, space]);
 
