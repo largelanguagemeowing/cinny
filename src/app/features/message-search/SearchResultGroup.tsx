@@ -13,7 +13,7 @@ import {
   makeMentionCustomProps,
   renderMatrixMention,
 } from '../../plugins/react-custom-html-parser';
-import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
+import { mxcUrlToHttp } from '../../utils/matrix';
 import { useMatrixEventRenderer } from '../../hooks/useMatrixEventRenderer';
 import { GetContentCallback, MessageEvent, StateEvent } from '../../../types/matrix/room';
 import {
@@ -32,8 +32,10 @@ import { Image } from '../../components/media';
 import { ImageViewer } from '../../components/image-viewer';
 import * as customHtmlCss from '../../styles/CustomHtml.css';
 import { RoomAvatar, RoomIcon } from '../../components/room-avatar';
-import { getMemberAvatarMxc, getMemberDisplayName, getRoomAvatarUrl } from '../../utils/room';
+import { getRoomAvatarUrl } from '../../utils/room';
 import { ResultItem } from './useMessageSearch';
+import { getResultAvatarMxc, getResultDisplayName, getResultProfile } from './resultUtils';
+import { SearchResultContext } from './SearchResultContext';
 import { SequenceCard } from '../../components/sequence-card';
 import { UserAvatar } from '../../components/user-avatar';
 import { useMentionClickHandler } from '../../hooks/useMentionClickHandler';
@@ -221,11 +223,9 @@ export function SearchResultGroup({
         {items.map((item) => {
           const { event } = item;
 
-          const displayName =
-            getMemberDisplayName(room, event.sender) ??
-            getMxIdLocalPart(event.sender) ??
-            event.sender;
-          const senderAvatarMxc = getMemberAvatarMxc(room, event.sender);
+          const senderProfile = getResultProfile(item.context, event.sender);
+          const displayName = getResultDisplayName(room, event.sender, senderProfile);
+          const senderAvatarMxc = getResultAvatarMxc(room, event.sender, senderProfile);
 
           const relation = event.content['m.relates_to'];
           const mainEventId =
@@ -318,7 +318,9 @@ export function SearchResultGroup({
                     legacyUsernameColor={legacyUsernameColor}
                   />
                 )}
+                <SearchResultContext room={room} context={item.context} position="before" />
                 {renderMatrixEvent(event.type, false, event, displayName, getContent)}
+                <SearchResultContext room={room} context={item.context} position="after" />
               </ModernLayout>
             </SequenceCard>
           );

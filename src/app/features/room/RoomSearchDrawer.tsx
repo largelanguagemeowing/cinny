@@ -22,6 +22,7 @@ import * as css from './RoomSearchDrawer.css';
 import { MembersDrawer } from './MembersDrawer';
 import { DmProfileDrawer } from './DmProfileDrawer';
 import { ContainerColor } from '../../styles/ContainerColor.css';
+import { EncryptionNotice, SearchErrorNotice } from '../message-search/SearchNotice';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useIsDirectRoom } from '../../hooks/useRoom';
 import { useSpaceOptionally } from '../../hooks/useSpace';
@@ -65,19 +66,18 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
   const { status, data, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     enabled: !!term,
     queryKey: ['room-sidebar-search', term, rooms],
-    queryFn: ({ pageParam }) => searchMessages(pageParam),
+    queryFn: ({ pageParam, signal }) => searchMessages(pageParam, signal),
     initialPageParam: '',
     getNextPageParam: (lastPage) => lastPage.nextToken,
   });
 
-  const groups = useMemo(
-    () => data?.pages.flatMap((result) => result.groups) ?? [],
-    [data]
-  );
+  const groups = useMemo(() => data?.pages.flatMap((result) => result.groups) ?? [], [data]);
   const highlights = useMemo(() => {
     const mixed = data?.pages.flatMap((result) => result.highlights);
     return Array.from(new Set(mixed));
   }, [data]);
+  // every page reports the same server-side total
+  const totalCount = data?.pages[0]?.count;
 
   const virtualizer = useVirtualizer({
     count: groups.length,
@@ -101,18 +101,22 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
     }
   }, [lastVItemIndex, lastGroupIndex, fetchNextPage, isFetchingNextPage, hasNextPage]);
 
-  const totalResults = useMemo(
-    () => groups.reduce((sum, g) => sum + g.items.length, 0),
-    [groups]
-  );
+  const loadedResults = useMemo(() => groups.reduce((sum, g) => sum + g.items.length, 0), [groups]);
+
+  let resultsLabel: string;
+  if (status === 'pending') {
+    resultsLabel = 'Searching...';
+  } else if (typeof totalCount === 'number' && totalCount > loadedResults) {
+    resultsLabel = `${loadedResults} of ${totalCount} Results`;
+  } else {
+    resultsLabel = `${loadedResults} ${loadedResults === 1 ? 'Result' : 'Results'}`;
+  }
 
   return (
     <Box className={css.RoomSearchContentBase} grow="Yes" direction="Column">
       <Box className={css.SearchResultsHeader}>
         <Text size="T200" priority="300">
-          {status === 'success' || status === 'error'
-            ? `${totalResults} ${totalResults === 1 ? 'Result' : 'Results'}`
-            : 'Searching...'}
+          {resultsLabel}
         </Text>
       </Box>
       <Scroll ref={scrollRef} variant="Background" size="300" visibility="Hover" hideTrack>
@@ -130,6 +134,11 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
               <Icon src={Icons.ChevronTop} size="300" />
             </IconButton>
           </ScrollTopContainer>
+
+          <EncryptionNotice
+            searchedRooms={rooms}
+            detailed={status === 'success' && groups.length === 0}
+          />
 
           {status === 'pending' && (
             <Box justifyContent="Center">
@@ -160,7 +169,7 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
                   <VirtualTile
                     virtualItem={vItem}
                     style={{ paddingBottom: config.space.S400 }}
-                    key={group.roomId}
+                    key={group.key}
                     ref={virtualizer.measureElement}
                   >
                     <SearchResultGroup
@@ -186,11 +195,7 @@ function SearchResults({ term, rooms, onOpen }: SearchResultsProps) {
             </Box>
           )}
 
-          {error && (
-            <Text style={{ padding: config.space.S300 }} align="Center" priority="300">
-              {error.message}
-            </Text>
-          )}
+          {error && <SearchErrorNotice error={error} />}
         </Box>
       </Scroll>
     </Box>
@@ -222,11 +227,7 @@ export function RoomSearchDrawer({ room, members }: RoomSearchDrawerProps) {
   const mDirects = useAtomValue(mDirectAtom);
   const roomToParents = useAtomValue(roomToParentsAtom);
   const childRoomScopeFactory = useRecursiveChildRoomScopeFactory(mx, mDirects, roomToParents);
-  const spaceChildren = useSpaceChildren(
-    allRoomsAtom,
-    space?.roomId ?? '',
-    childRoomScopeFactory
-  );
+  const spaceChildren = useSpaceChildren(allRoomsAtom, space?.roomId ?? '', childRoomScopeFactory);
   const orphanRooms = useOrphanRooms(mx, allRoomsAtom, mDirects, roomToParents);
   const directs = useDirects(mx, allRoomsAtom, mDirects);
 
