@@ -35,6 +35,7 @@ import { useSyncState } from '../../hooks/useSyncState';
 import { stopPropagation } from '../../utils/keyboard';
 import { SyncStatus } from './SyncStatus';
 import { AuthMetadataProvider } from '../../hooks/useAuthMetadata';
+import { ServerSoftwareProvider } from '../../hooks/useServerSoftware';
 import { getFallbackSession } from '../../state/sessions';
 import { AutoDiscovery } from './AutoDiscovery';
 
@@ -226,7 +227,9 @@ export function ClientRoot({ children }: ClientRootProps) {
                 <CapabilitiesProvider value={serverConfigs.capabilities ?? {}}>
                   <MediaConfigProvider value={serverConfigs.mediaConfig ?? {}}>
                     <AuthMetadataProvider value={serverConfigs.authMetadata}>
-                      {children}
+                      <ServerSoftwareProvider value={serverConfigs.serverSoftware}>
+                        {children}
+                      </ServerSoftwareProvider>
                     </AuthMetadataProvider>
                   </MediaConfigProvider>
                 </CapabilitiesProvider>
