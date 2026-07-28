@@ -14,7 +14,7 @@ import { settingsAtom } from '../../state/settings';
 import { allInvitesAtom } from '../../state/room-list/inviteList';
 import { usePreviousValue } from '../../hooks/usePreviousValue';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
-import { getInboxInvitesPath, getInboxNotificationsPath } from '../pathUtils';
+import { getInboxInvitesPath } from '../pathUtils';
 import {
   getEventBodyForNotification,
   getMemberAvatarMxc,
@@ -28,6 +28,7 @@ import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
 import { useSelectedRoom } from '../../hooks/router/useSelectedRoom';
 import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { useRoomNavigate } from '../../hooks/useRoomNavigate';
 import { migrateGifFavorites } from '../../state/gifFavorites';
 import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { mDirectAtom } from '../../state/mDirectList';
@@ -156,12 +157,26 @@ function MessageNotifications() {
   const [showNotifications] = useSetting(settingsAtom, 'showNotifications');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
-  const navigate = useNavigate();
+  const { navigateRoom } = useRoomNavigate();
   const notificationSelected = useInboxNotificationsSelected();
   const selectedRoomId = useSelectedRoom();
 
   const notify = useCallback(
-    ({ title, body, icon, tag }: { title: string; body: string; icon?: string; tag: string }) => {
+    ({
+      title,
+      body,
+      icon,
+      tag,
+      roomId,
+      eventId,
+    }: {
+      title: string;
+      body: string;
+      icon?: string;
+      tag: string;
+      roomId: string;
+      eventId?: string;
+    }) => {
       const noti = new window.Notification(title, {
         icon,
         badge: icon,
@@ -171,11 +186,11 @@ function MessageNotifications() {
       });
 
       noti.onclick = () => {
-        if (!window.closed) navigate(getInboxNotificationsPath());
+        if (!window.closed) navigateRoom(roomId, eventId);
         noti.close();
       };
     },
-    [navigate]
+    [navigateRoom]
   );
 
   const playSound = useCallback(() => {
@@ -242,6 +257,8 @@ function MessageNotifications() {
             ? mxcUrlToHttp(mx, senderAvatarMxc, useAuthentication, 96, 96, 'crop') ?? undefined
             : undefined,
           tag: room.roomId,
+          roomId: room.roomId,
+          eventId,
         });
       }
 
