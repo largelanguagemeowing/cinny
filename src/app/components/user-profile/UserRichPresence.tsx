@@ -87,6 +87,14 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
   const imageUrl = imageMxc
     ? mxcUrlToHttp(mx, imageMxc, useAuthentication, 96, 96, 'crop') ?? undefined
     : undefined;
+  const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>(
+    imageUrl ? 'loading' : 'error'
+  );
+
+  useEffect(() => {
+    setImageStatus(imageUrl ? 'loading' : 'error');
+  }, [imageUrl]);
+
   const externalUrl = getExternalUrl(
     presence.type === 'media' ? presence.streamingLink : undefined
   );
@@ -135,7 +143,18 @@ export function UserRichPresence({ presence }: UserRichPresenceProps) {
       <Box gap="300" alignItems="Stretch">
         <div className={css.RichPresenceArtwork}>
           {imageUrl ? (
-            <img className={css.RichPresenceImage} src={imageUrl} alt="" draggable="false" />
+            <>
+              <img
+                className={css.RichPresenceImage}
+                src={imageUrl}
+                alt=""
+                draggable="false"
+                style={imageStatus === 'loaded' ? undefined : { display: 'none' }}
+                onLoad={() => setImageStatus('loaded')}
+                onError={() => setImageStatus('error')}
+              />
+              {imageStatus !== 'loaded' && <Icon src={Icons.Play} size="300" filled />}
+            </>
           ) : (
             <Icon src={Icons.Play} size="300" filled />
           )}
