@@ -1,5 +1,6 @@
 /* eslint-disable react/destructuring-assignment */
 import React, {
+  ClipboardEventHandler,
   Dispatch,
   MouseEventHandler,
   RefObject,
@@ -126,6 +127,7 @@ import { useAccessiblePowerTagColors, useGetMemberPowerTag } from '../../hooks/u
 import { useTheme } from '../../hooks/useTheme';
 import { useRoomCreatorsTag } from '../../hooks/useRoomCreatorsTag';
 import { usePowerLevelTags } from '../../hooks/usePowerLevelTags';
+import { eventToTranscriptLine } from '../../utils/copyTranscript';
 
 const TimelineFloat = as<'div', css.TimelineFloatVariants>(
   ({ position, className, ...props }, ref) => (
@@ -553,6 +555,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   const [timeline, setTimeline] = useState<Timeline>(() =>
     eventId ? getEmptyTimeline() : getInitialTimeline(room)
   );
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
   const eventsLength = getTimelinesEventsCount(timeline.linkedTimelines);
   const liveTimelineLinked =
     timeline.linkedTimelines[timeline.linkedTimelines.length - 1] === getLiveTimeline(room);
@@ -1677,6 +1681,108 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     }
   );
 
+  // Fork-only: replaces the browser's messy selection copy with a clean,
+  // parseable transcript ([time] <sender> body, with reply context quoted).
+  // Falls back to native copy when the selection is not a transcript-shaped
+  // span of messages.
+  const handleCopy = useCallback<ClipboardEventHandler<HTMLDivElement>>(
+    (evt) => {
+      // Never hijack copy from the in-message (Slate) message editor.
+      if (editableActiveElement()) return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+      const container = scrollRef.current;
+      if (!container) return;
+      const range = selection.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) return;
+
+      const rootItem = (node: Node | null): HTMLElement | undefined => {
+        let el: Node | null = node;
+        while (el && el !== container) {
+          if (el instanceof HTMLElement && el.hasAttribute('data-message-item')) return el;
+          el = el.parentNode;
+        }
+        return undefined;
+      };
+
+      // Selection endpoints may sit on non-message nodes (day/unread
+      // dividers). Widen to the message the divider belongs to: a divider
+      // renders above the row it labels, so the start endpoint goes forward
+      // and the end endpoint goes backward.
+      const walk = (node: Node | null, forward: boolean): HTMLElement | undefined => {
+        let current: Node | null = node;
+        while (current && current !== container) {
+          const item = rootItem(current);
+          if (item) return item;
+          current = (forward ? current.nextSibling : current.previousSibling) ?? current.parentNode;
+        }
+        return undefined;
+      };
+
+      const startEl = rootItem(range.startContainer) ?? walk(range.startContainer, true);
+      const endEl = rootItem(range.endContainer) ?? walk(range.endContainer, false);
+      if (!startEl || !endEl) return;
+
+      const startAttr = startEl.getAttribute('data-message-item');
+      const endAttr = endEl.getAttribute('data-message-item');
+      if (startAttr === null || endAttr === null) return;
+      const start = Number(startAttr);
+      const end = Number(endAttr);
+      if (Number.isNaN(start) || Number.isNaN(end)) return;
+
+      const itemFrom = Math.min(start, end);
+      const itemTo = Math.max(start, end);
+
+      // Selecting inside a single message keeps native copy unless the whole
+      // message row is covered, so raw text snippets stay copyable. Selections
+      // spanning multiple messages always produce a transcript of every
+      // touched message in full.
+      if (itemFrom === itemTo) {
+        if (!rootItem(range.startContainer) || !rootItem(range.endContainer)) return;
+        // Whole-row check with false-positive margins: drags that begin a few
+        // pixels left/right of the body still count as covering the row.
+        const fullRange = document.createRange();
+        fullRange.selectNodeContents(startEl);
+        const coversWholeItem =
+          range.compareBoundaryPoints(Range.START_TO_START, fullRange) <= 0 &&
+          range.compareBoundaryPoints(Range.END_TO_END, fullRange) >= 0;
+        if (!coversWholeItem) return;
+      }
+
+      const { linkedTimelines } = timelineRef.current;
+      const transcript: string[] = [];
+      for (let item = itemFrom; item <= itemTo; item += 1) {
+        const [eventTimeline, baseIndex] = getTimelineAndBaseIndex(linkedTimelines, item);
+        const mEvent =
+          eventTimeline &&
+          getTimelineEvent(eventTimeline, getTimelineRelativeIndex(item, baseIndex));
+        // Match eventRenderer's visibility rules: never copy content the
+        // timeline hides (ignored senders, redacted-with-hidden-events).
+        const visible =
+          mEvent &&
+          eventTimeline &&
+          !(mEvent.getSender() && ignoredUsersSet.has(mEvent.getSender() ?? '')) &&
+          !(mEvent.isRedacted() && !showHiddenEvents);
+        if (visible && mEvent && eventTimeline) {
+          const line = eventToTranscriptLine(
+            room,
+            mEvent,
+            eventTimeline.getTimelineSet(),
+            hour24Clock
+          );
+          if (line) transcript.push(line);
+        }
+      }
+
+      if (transcript.length === 0) return;
+      evt.clipboardData.setData('text/plain', transcript.join('\n'));
+      evt.preventDefault();
+    },
+    [room, ignoredUsersSet, showHiddenEvents, hour24Clock]
+  );
+
   let prevEvent: MatrixEvent | undefined;
   let isPrevRendered = false;
   let newDivider = false;
@@ -1802,6 +1908,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
           direction="Column"
           justifyContent="End"
           style={{ minHeight: '100%', padding: `${config.space.S600} 0` }}
+          onCopy={handleCopy}
         >
           {!canPaginateBack && rangeAtStart && getItems().length > 0 && (
             <div
