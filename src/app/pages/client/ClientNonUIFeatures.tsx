@@ -34,6 +34,7 @@ import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { mDirectAtom } from '../../state/mDirectList';
 import { useSpaceAutoJoinGlobal } from '../../hooks/useSpaceAutoJoinGlobal';
 import { useRoomNavShortcuts } from '../../hooks/useRoomNavShortcuts';
+import { useRoomNavHistory } from '../../hooks/useRoomNavHistory';
 
 function GifFavoritesMigration() {
   const mx = useMatrixClient();
@@ -301,6 +302,11 @@ function RoomNavShortcutsFeature() {
   return null;
 }
 
+function RoomNavHistoryFeature() {
+  useRoomNavHistory();
+  return null;
+}
+
 type ClientNonUIFeaturesProps = {
   children: ReactNode;
 };
@@ -316,6 +322,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
       <MessageNotifications />
       <SpaceAutoJoinFeature />
       <RoomNavShortcutsFeature />
+      <RoomNavHistoryFeature />
       {children}
     </>
   );
