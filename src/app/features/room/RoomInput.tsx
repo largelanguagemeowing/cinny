@@ -342,7 +342,10 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       });
       handleCancelUpload(uploads);
       const contents = fulfilledPromiseSettledResult(await Promise.allSettled(contentsPromises));
-      contents.forEach((content) => mx.sendMessage(roomId, content as any));
+      contents.forEach((content) =>
+        mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any)
+      );
+      setReplyDraft(undefined);
     };
 
     const submit = useCallback(() => {
