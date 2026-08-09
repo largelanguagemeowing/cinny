@@ -10,6 +10,7 @@ import {
   PlayTimeCallback,
   useMediaLoading,
   useMediaPlay,
+  useMediaPlaybackRate,
   useMediaPlayTimeCallback,
   useMediaSeek,
   useMediaVolume,
@@ -27,6 +28,13 @@ import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 const PLAY_TIME_THROTTLE_OPS = {
   wait: 500,
   immediate: true,
+};
+
+const PLAYBACK_RATES = [1, 1.25, 1.5, 2];
+
+const getNextPlaybackRate = (playbackRate: number): number => {
+  const currentIndex = PLAYBACK_RATES.indexOf(playbackRate);
+  return PLAYBACK_RATES[(currentIndex + 1) % PLAYBACK_RATES.length];
 };
 
 type RenderMediaControlProps = {
@@ -74,10 +82,11 @@ export function AudioContent({
   const { loading } = useMediaLoading(getAudioRef);
   const { playing, setPlaying } = useMediaPlay(getAudioRef);
   const { seek } = useMediaSeek(getAudioRef);
+  const { playbackRate, setPlaybackRate } = useMediaPlaybackRate(getAudioRef);
   const { volume, mute, setMute, setVolume } = useMediaVolume(getAudioRef);
   const handlePlayTimeCallback: PlayTimeCallback = useCallback((d, ct) => {
-    setDuration(d);
-    setCurrentTime(ct);
+    if (Number.isFinite(d) && d > 0) setDuration(d);
+    if (Number.isFinite(ct) && ct >= 0) setCurrentTime(ct);
   }, []);
   useMediaPlayTimeCallback(
     getAudioRef,
@@ -92,24 +101,49 @@ export function AudioContent({
     }
   };
 
+  const handleSeek = (values: number[]) => {
+    const nextTime = values[0];
+    setCurrentTime(nextTime);
+    seek(nextTime);
+  };
+
+  const seekDuration = duration > 0 ? duration : 1;
+  const seekTime = Math.min(currentTime, seekDuration);
+  const formattedSeekTime = secondsToMinutesAndSeconds(seekTime);
+  const formattedDuration = secondsToMinutesAndSeconds(duration);
+
   return renderMediaControl({
     after: (
       <Range
         step={1}
         min={0}
-        max={duration || 1}
-        values={[currentTime]}
-        onChange={(values) => seek(values[0])}
+        max={seekDuration}
+        values={[seekTime]}
+        disabled={duration <= 0}
+        onChange={handleSeek}
+        onFinalChange={handleSeek}
         renderTrack={(params) => (
-          <div {...params.props}>
+          <div
+            {...params.props}
+            style={{
+              ...params.props.style,
+              alignItems: 'center',
+              cursor: duration > 0 ? 'pointer' : 'default',
+              display: 'flex',
+              height: toRem(24),
+              touchAction: 'none',
+              width: '100%',
+            }}
+          >
             {params.children}
             <ProgressBar
               as="div"
+              style={{ pointerEvents: 'none', width: '100%' }}
               variant="Secondary"
               size="300"
               min={0}
-              max={duration}
-              value={currentTime}
+              max={seekDuration}
+              value={seekTime}
               radii="300"
             />
           </div>
@@ -122,9 +156,12 @@ export function AudioContent({
             radii="Pill"
             outlined
             {...params.props}
+            aria-label="Seek audio"
+            aria-valuetext={`${formattedSeekTime} of ${formattedDuration}`}
             style={{
               ...params.props.style,
-              zIndex: 0,
+              cursor: 'grab',
+              zIndex: 1,
             }}
           />
         )}
@@ -148,18 +185,25 @@ export function AudioContent({
           <Text size="B300">{playing ? 'Pause' : 'Play'}</Text>
         </Chip>
 
-        <Text size="T200">{`${secondsToMinutesAndSeconds(
-          currentTime
-        )} / ${secondsToMinutesAndSeconds(duration)}`}</Text>
+        <Text size="T200">{`${formattedSeekTime} / ${formattedDuration}`}</Text>
       </>
     ),
     rightControl: (
       <>
+        <Chip
+          onClick={() => setPlaybackRate(getNextPlaybackRate(playbackRate))}
+          variant="SurfaceVariant"
+          radii="300"
+          aria-label={`Playback speed, ${playbackRate} times`}
+        >
+          <Text size="B300">{playbackRate}×</Text>
+        </Chip>
         <IconButton
           variant="SurfaceVariant"
           size="300"
           radii="Pill"
           onClick={() => setMute(!mute)}
+          aria-label={mute ? 'Unmute audio' : 'Mute audio'}
           aria-pressed={mute}
         >
           <Icon src={mute ? Icons.VolumeMute : Icons.VolumeHigh} size="50" />
@@ -171,10 +215,21 @@ export function AudioContent({
           values={[volume]}
           onChange={(values) => setVolume(values[0])}
           renderTrack={(params) => (
-            <div {...params.props}>
+            <div
+              {...params.props}
+              style={{
+                ...params.props.style,
+                alignItems: 'center',
+                cursor: 'pointer',
+                display: 'flex',
+                height: toRem(24),
+                touchAction: 'none',
+                width: toRem(64),
+              }}
+            >
               {params.children}
               <ProgressBar
-                style={{ width: toRem(48) }}
+                style={{ pointerEvents: 'none', width: '100%' }}
                 variant="Secondary"
                 size="300"
                 min={0}
@@ -192,9 +247,12 @@ export function AudioContent({
               radii="Pill"
               outlined
               {...params.props}
+              aria-label="Volume"
+              aria-valuetext={`${Math.round(volume * 100)} percent`}
               style={{
                 ...params.props.style,
-                zIndex: 0,
+                cursor: 'grab',
+                zIndex: 1,
               }}
             />
           )}
@@ -202,9 +260,12 @@ export function AudioContent({
       </>
     ),
     children: (
-      <audio controls={false} autoPlay ref={audioRef}>
-        {srcState.status === AsyncStatus.Success && <source src={srcState.data} type={mimeType} />}
-      </audio>
+      <audio
+        controls={false}
+        autoPlay
+        ref={audioRef}
+        src={srcState.status === AsyncStatus.Success ? srcState.data : undefined}
+      />
     ),
   });
 }
