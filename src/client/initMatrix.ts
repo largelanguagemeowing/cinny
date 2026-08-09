@@ -9,6 +9,7 @@ import { clearNavToActivePathStore } from '../app/state/navToActivePath';
 import { getSettings } from '../app/state/settings';
 import { pushSessionToSW } from '../sw-session';
 import { USER_PROFILE_FIELDS } from '../types/matrix/profile';
+import { reportClientStorageError, resetClientStorageError } from './storageStatus';
 
 type Session = {
   baseUrl: string;
@@ -18,6 +19,7 @@ type Session = {
 };
 
 export const initClient = async (session: Session): Promise<MatrixClient> => {
+  resetClientStorageError();
   const indexedDBStore = new IndexedDBStore({
     indexedDB: global.indexedDB,
     localStorage: global.localStorage,
@@ -25,6 +27,8 @@ export const initClient = async (session: Session): Promise<MatrixClient> => {
   });
 
   const legacyCryptoStore = new IndexedDBCryptoStore(global.indexedDB, 'crypto-store');
+
+  indexedDBStore.on('degraded', reportClientStorageError);
 
   const mx = createClient({
     baseUrl: session.baseUrl,

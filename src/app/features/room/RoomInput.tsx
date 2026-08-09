@@ -27,6 +27,7 @@ import {
   PopOut,
   Scroll,
   Text,
+  color,
   config,
   toRem,
 } from 'folds';
@@ -137,6 +138,9 @@ const gifIconStyles: CSSProperties = {
   padding: `${toRem(3)} ${toRem(2)}`,
 };
 
+const SEND_FAILURE_MESSAGE =
+  'Message not sent. Check your connection and available disk space, then retry the failed message.';
+
 const addReplyRelation = (content: IContent, replyDraft?: IReplyDraft): IContent => {
   if (!replyDraft) return content;
 
@@ -179,6 +183,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
 
     const [msgDraft, setMsgDraft] = useAtom(roomIdToMsgDraftAtomFamily(roomId));
     const [replyDraft, setReplyDraft] = useAtom(roomIdToReplyDraftAtomFamily(roomId));
+    const [sendError, setSendError] = useState<string>();
     const replyUserID = replyDraft?.userId;
 
     const powerLevelTags = usePowerLevelTags(room, powerLevels);
@@ -342,8 +347,15 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       });
       handleCancelUpload(uploads);
       const contents = fulfilledPromiseSettledResult(await Promise.allSettled(contentsPromises));
-      contents.forEach((content) =>
-        mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any)
+      const sendResults = await Promise.allSettled(
+        contents.map((content) =>
+          mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any)
+        )
+      );
+      setSendError(
+        sendResults.some((result) => result.status === 'rejected')
+          ? SEND_FAILURE_MESSAGE
+          : undefined
       );
       setReplyDraft(undefined);
     };
@@ -412,7 +424,10 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
         content.format = 'org.matrix.custom.html';
         content.formatted_body = formattedBody;
       }
-      mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any);
+      setSendError(undefined);
+      mx.sendMessage(roomId, addReplyRelation(content, replyDraft) as any).catch(() =>
+        setSendError(SEND_FAILURE_MESSAGE)
+      );
       resetEditor(editor);
       resetEditorHistory(editor);
       setReplyDraft(undefined);
@@ -853,12 +868,25 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
             </>
           }
           bottom={
-            toolbar && (
-              <div>
-                <Line variant="SurfaceVariant" size="300" />
-                <Toolbar />
-              </div>
-            )
+            toolbar || sendError ? (
+              <Box direction="Column">
+                {sendError && (
+                  <Text
+                    role="alert"
+                    size="T200"
+                    style={{ color: color.Critical.Main, padding: config.space.S200 }}
+                  >
+                    {sendError}
+                  </Text>
+                )}
+                {toolbar && (
+                  <div>
+                    <Line variant="SurfaceVariant" size="300" />
+                    <Toolbar />
+                  </div>
+                )}
+              </Box>
+            ) : undefined
           }
         />
       </div>

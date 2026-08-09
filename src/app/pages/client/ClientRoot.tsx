@@ -38,6 +38,7 @@ import { AuthMetadataProvider } from '../../hooks/useAuthMetadata';
 import { ServerSoftwareProvider } from '../../hooks/useServerSoftware';
 import { getFallbackSession } from '../../state/sessions';
 import { AutoDiscovery } from './AutoDiscovery';
+import { StorageStatus } from './StorageStatus';
 
 function ClientRootLoading() {
   return (
@@ -189,6 +190,7 @@ export function ClientRoot({ children }: ClientRootProps) {
     <AutoDiscovery userId={userId!} baseUrl={baseUrl!}>
       <SpecVersions baseUrl={baseUrl!}>
         {mx && <SyncStatus mx={mx} />}
+        {mx && <StorageStatus />}
         {loading && <ClientRootOptions mx={mx} />}
         {(loadState.status === AsyncStatus.Error || startState.status === AsyncStatus.Error) && (
           <SplashScreen>
