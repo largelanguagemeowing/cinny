@@ -75,14 +75,38 @@ test('audio timeline supports pointer and keyboard seeking', async ({ page }) =>
 
     const message = page.locator(`[data-message-id="${eventId}"]`);
     await expect(message).toBeVisible();
-    await message.getByRole('button', { name: 'Play', exact: true }).click();
 
     const audio = message.locator('audio');
-    await expect
-      .poll(() => audio.evaluate((element) => element.readyState))
-      .toBeGreaterThanOrEqual(1);
-
     const seekSlider = message.getByRole('slider', { name: 'Seek audio' });
+    const volumeSlider = message.getByRole('slider', { name: 'Volume' });
+    const seekBar = message.getByTestId('audio-seek-bar');
+    const volumeBar = message.getByTestId('audio-volume-bar');
+
+    const [seekThumbBox, seekBarBox, volumeThumbBox, volumeBarBox] = await Promise.all([
+      seekSlider.boundingBox(),
+      seekBar.boundingBox(),
+      volumeSlider.boundingBox(),
+      volumeBar.boundingBox(),
+    ]);
+    if (!seekThumbBox || !seekBarBox || !volumeThumbBox || !volumeBarBox) {
+      throw new Error('Audio controls have no layout box');
+    }
+
+    const centerY = (box: { y: number; height: number }) => box.y + box.height / 2;
+    expect(Math.abs(centerY(seekThumbBox) - centerY(seekBarBox))).toBeLessThanOrEqual(1);
+    expect(Math.abs(centerY(volumeThumbBox) - centerY(volumeBarBox))).toBeLessThanOrEqual(1);
+
+    await audio.evaluate((element) => {
+      let mockedCurrentTime = 0;
+      Object.defineProperty(element, 'currentTime', {
+        configurable: true,
+        get: () => mockedCurrentTime,
+        set: (value: number) => {
+          mockedCurrentTime = value;
+        },
+      });
+    });
+
     const seekTrack = seekSlider.locator('..');
     const thumbBox = await seekSlider.boundingBox();
     const trackBox = await seekTrack.boundingBox();

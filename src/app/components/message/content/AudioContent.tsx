@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import React, { ReactNode, useCallback, useRef, useState } from 'react';
-import { Badge, Chip, Icon, IconButton, Icons, ProgressBar, Spinner, Text, toRem } from 'folds';
+import { Chip, Icon, IconButton, Icons, ProgressBar, Spinner, Text, color, toRem } from 'folds';
 import { EncryptedAttachmentInfo } from 'browser-encrypt-attachment';
 import { Range } from 'react-range';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
@@ -127,10 +127,10 @@ export function AudioContent({
             {...params.props}
             style={{
               ...params.props.style,
-              alignItems: 'center',
               cursor: duration > 0 ? 'pointer' : 'default',
               display: 'flex',
               height: toRem(24),
+              position: 'relative',
               touchAction: 'none',
               width: '100%',
             }}
@@ -138,7 +138,15 @@ export function AudioContent({
             {params.children}
             <ProgressBar
               as="div"
-              style={{ pointerEvents: 'none', width: '100%' }}
+              data-testid="audio-seek-bar"
+              style={{
+                left: 0,
+                pointerEvents: 'none',
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '100%',
+              }}
               variant="Secondary"
               size="300"
               min={0}
@@ -149,18 +157,17 @@ export function AudioContent({
           </div>
         )}
         renderThumb={(params) => (
-          <Badge
-            size="300"
-            variant="Secondary"
-            fill="Solid"
-            radii="Pill"
-            outlined
+          <div
             {...params.props}
             aria-label="Seek audio"
             aria-valuetext={`${formattedSeekTime} of ${formattedDuration}`}
             style={{
               ...params.props.style,
+              backgroundColor: color.Secondary.Main,
+              borderRadius: '50%',
               cursor: 'grab',
+              height: toRem(14),
+              width: toRem(14),
               zIndex: 1,
             }}
           />
@@ -219,17 +226,25 @@ export function AudioContent({
               {...params.props}
               style={{
                 ...params.props.style,
-                alignItems: 'center',
                 cursor: 'pointer',
                 display: 'flex',
                 height: toRem(24),
+                position: 'relative',
                 touchAction: 'none',
                 width: toRem(64),
               }}
             >
               {params.children}
               <ProgressBar
-                style={{ pointerEvents: 'none', width: '100%' }}
+                data-testid="audio-volume-bar"
+                style={{
+                  left: 0,
+                  pointerEvents: 'none',
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '100%',
+                }}
                 variant="Secondary"
                 size="300"
                 min={0}
@@ -240,18 +255,17 @@ export function AudioContent({
             </div>
           )}
           renderThumb={(params) => (
-            <Badge
-              size="300"
-              variant="Secondary"
-              fill="Solid"
-              radii="Pill"
-              outlined
+            <div
               {...params.props}
               aria-label="Volume"
               aria-valuetext={`${Math.round(volume * 100)} percent`}
               style={{
                 ...params.props.style,
+                backgroundColor: color.Secondary.Main,
+                borderRadius: '50%',
                 cursor: 'grab',
+                height: toRem(14),
+                width: toRem(14),
                 zIndex: 1,
               }}
             />
