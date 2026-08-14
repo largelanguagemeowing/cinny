@@ -35,6 +35,7 @@ import { testMatrixTo } from '../plugins/matrix-to';
 import { parseOoyeGif } from '../utils/ooye';
 import { IImageContent } from '../../types/matrix/common';
 import { isMediaAutoEmbedUrl } from '../utils/mediaAutoEmbed';
+import { trimReplyFromBody, trimReplyFromFormattedBody } from '../utils/room';
 
 type RenderMessageContentProps = {
   displayName: string;
@@ -62,6 +63,19 @@ export function RenderMessageContent({
   linkifyOpts,
   outlineAttachment,
 }: RenderMessageContentProps) {
+  const messageContent: Record<string, unknown> = getContent();
+  const trimmedContent = {
+    ...messageContent,
+    body:
+      typeof messageContent.body === 'string'
+        ? trimReplyFromBody(messageContent.body)
+        : messageContent.body,
+    formatted_body:
+      typeof messageContent.formatted_body === 'string'
+        ? trimReplyFromFormattedBody(messageContent.formatted_body)
+        : messageContent.formatted_body,
+  };
+
   const renderUrlsPreview = (urls: string[]) => {
     const filteredUrls = urls.filter((url) => !testMatrixTo(url));
     if (filteredUrls.length === 0) return undefined;
@@ -146,7 +160,7 @@ export function RenderMessageContent({
   );
 
   if (msgType === MsgType.Text) {
-    const ooyeGif = parseOoyeGif(getContent());
+    const ooyeGif = parseOoyeGif(trimmedContent);
     if (ooyeGif) {
       return (
         <OoyeGifContent
@@ -193,7 +207,7 @@ export function RenderMessageContent({
   }
 
   if (msgType === MsgType.Notice) {
-    const ooyeGif = parseOoyeGif(getContent());
+    const ooyeGif = parseOoyeGif(trimmedContent);
     if (ooyeGif) {
       return (
         <OoyeGifContent
