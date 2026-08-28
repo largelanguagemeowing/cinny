@@ -12,6 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "test:unit": "vitest run",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "lint": "npm run check:eslint && npm run check:prettier",
@@ -130,10 +131,12 @@
     "husky": "9.1.7",
     "lint-staged": "16.3.2",
     "prettier": "2.8.1",
+    "react-test-renderer": "18.2.0",
     "typescript": "4.9.4",
     "vite": "5.4.19",
     "vite-plugin-pwa": "0.20.5",
     "vite-plugin-static-copy": "1.0.4",
-    "vite-plugin-top-level-await": "1.4.4"
+    "vite-plugin-top-level-await": "1.4.4",
+    "vitest": "2.1.9"
   }
 }

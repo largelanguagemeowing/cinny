@@ -29,18 +29,25 @@ export const useUserPresence = (userId: string): UserPresence | undefined => {
   const [presence, setPresence] = useState(() => (user ? getUserPresence(user) : undefined));
 
   useEffect(() => {
+    // Re-sync state whenever the resolved user changes identity. Virtualized
+    // room lists rebind rows to other rooms (keyed by index), so a row can
+    // switch partners without remounting; without this the previous user's
+    // presence would linger until the new user's next presence event.
+    setPresence(user ? getUserPresence(user) : undefined);
+    if (!user) return () => undefined;
+
     const updatePresence: UserEventHandlerMap[UserEvent.Presence] = (event, u) => {
-      if (u.userId === user?.userId) {
+      if (u.userId === user.userId) {
         setPresence(getUserPresence(user));
       }
     };
-    user?.on(UserEvent.Presence, updatePresence);
-    user?.on(UserEvent.CurrentlyActive, updatePresence);
-    user?.on(UserEvent.LastPresenceTs, updatePresence);
+    user.on(UserEvent.Presence, updatePresence);
+    user.on(UserEvent.CurrentlyActive, updatePresence);
+    user.on(UserEvent.LastPresenceTs, updatePresence);
     return () => {
-      user?.removeListener(UserEvent.Presence, updatePresence);
-      user?.removeListener(UserEvent.CurrentlyActive, updatePresence);
-      user?.removeListener(UserEvent.LastPresenceTs, updatePresence);
+      user.removeListener(UserEvent.Presence, updatePresence);
+      user.removeListener(UserEvent.CurrentlyActive, updatePresence);
+      user.removeListener(UserEvent.LastPresenceTs, updatePresence);
     };
   }, [user]);
 
