@@ -76,7 +76,20 @@ spec:
                 name: cinny
                 port:
                   number: 80
+    - host: im.queef.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cinny
+                port:
+                  number: 80
   tls:
     - hosts:
         - cinny.k8s.mreow.de
       secretName: cinny-tls
+    - hosts:
+        - im.queef.in
+      secretName: cinny-queef-in-tls
