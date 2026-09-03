@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getPersistedMediaVolume, updatePersistedMediaVolume } from '../../utils/mediaVolume';
 
 export type MediaVolumeData = {
   volume: number;
@@ -13,10 +14,7 @@ export type MediaVolumeControl = {
 export const useMediaVolume = (
   getTargetElement: () => HTMLMediaElement | null
 ): MediaVolumeData & MediaVolumeControl => {
-  const [volumeData, setVolumeData] = useState<MediaVolumeData>({
-    volume: 1,
-    mute: false,
-  });
+  const [volumeData, setVolumeData] = useState<MediaVolumeData>(getPersistedMediaVolume);
 
   const setMute = useCallback(
     (mute: boolean) => {
@@ -40,13 +38,21 @@ export const useMediaVolume = (
     const targetEl = getTargetElement();
     const handleChange = () => {
       if (!targetEl) return;
-
-      setVolumeData({
+      const next = {
         mute: targetEl.muted,
         volume: Math.max(0, Math.min(targetEl.volume, 1)),
-      });
+      };
+      setVolumeData(next);
+      updatePersistedMediaVolume(next);
     };
-    targetEl?.addEventListener('volumechange', handleChange);
+
+    if (targetEl) {
+      // Apply the persisted volume to a freshly mounted element.
+      const persisted = getPersistedMediaVolume();
+      targetEl.volume = persisted.volume;
+      targetEl.muted = persisted.mute;
+      targetEl.addEventListener('volumechange', handleChange);
+    }
     return () => {
       targetEl?.removeEventListener('volumechange', handleChange);
     };
