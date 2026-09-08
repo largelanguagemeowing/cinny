@@ -69,6 +69,7 @@ import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { EmojiBoard } from '../../../components/emoji-board';
 import { ReactionViewer } from '../reaction-viewer';
 import { MessageEditor } from './MessageEditor';
+import { MessageCopyImageItem } from './MessageCopyImageItem';
 import { UserAvatar } from '../../../components/user-avatar';
 import { copyToClipboard } from '../../../utils/dom';
 import { stopPropagation } from '../../../utils/keyboard';
@@ -769,6 +770,7 @@ export const Message = as<'div', MessageProps>(
     const { hoverProps } = useHover({ onHoverChange: setHover });
     const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: setHover });
     const [menuAnchor, setMenuAnchor] = useState<RectCords>();
+    const [menuImageSrc, setMenuImageSrc] = useState<string>();
     const [emojiBoardAnchor, setEmojiBoardAnchor] = useState<RectCords>();
 
     const senderDisplayName =
@@ -932,8 +934,9 @@ export const Message = as<'div', MessageProps>(
     const handleContextMenu: MouseEventHandler<HTMLDivElement> = (evt) => {
       if (evt.altKey || !window.getSelection()?.isCollapsed || edit) return;
       const tag = (evt.target as any).tagName;
-      // Preserve the native image menu, including Copy image, in the timeline and viewer.
-      if (typeof tag === 'string' && ['a', 'img'].includes(tag.toLowerCase())) return;
+      if (typeof tag === 'string' && tag.toLowerCase() === 'a') return;
+      const image = evt.target instanceof HTMLImageElement ? evt.target : undefined;
+      setMenuImageSrc(image?.currentSrc || image?.src);
       evt.preventDefault();
       setMenuAnchor({
         x: evt.clientX,
@@ -961,6 +964,7 @@ export const Message = as<'div', MessageProps>(
     );
 
     const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
+      setMenuImageSrc(undefined);
       const target = evt.currentTarget.parentElement?.parentElement ?? evt.currentTarget;
       setMenuAnchor(target.getBoundingClientRect());
     };
@@ -1200,6 +1204,13 @@ export const Message = as<'div', MessageProps>(
                             />
                           )}
                           <MessageFavoriteGifItem mEvent={mEvent} onClose={closeMenu} />
+                          {menuImageSrc && (
+                            <MessageCopyImageItem
+                              key={menuImageSrc}
+                              src={menuImageSrc}
+                              onClose={closeMenu}
+                            />
+                          )}
                           <MessageCopyLinkItem room={room} mEvent={mEvent} onClose={closeMenu} />
                           {canPinEvent && (
                             <MessagePinItem room={room} mEvent={mEvent} onClose={closeMenu} />
@@ -1296,13 +1307,15 @@ export const Event = as<'div', EventProps>(
     const { hoverProps } = useHover({ onHoverChange: setHover });
     const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: setHover });
     const [menuAnchor, setMenuAnchor] = useState<RectCords>();
+    const [menuImageSrc, setMenuImageSrc] = useState<string>();
     const stateEvent = typeof mEvent.getStateKey() === 'string';
 
     const handleContextMenu: MouseEventHandler<HTMLDivElement> = (evt) => {
       if (evt.altKey || !window.getSelection()?.isCollapsed) return;
       const tag = (evt.target as any).tagName;
-      // Preserve the native image menu, including Copy image, in the timeline and viewer.
-      if (typeof tag === 'string' && ['a', 'img'].includes(tag.toLowerCase())) return;
+      if (typeof tag === 'string' && tag.toLowerCase() === 'a') return;
+      const image = evt.target instanceof HTMLImageElement ? evt.target : undefined;
+      setMenuImageSrc(image?.currentSrc || image?.src);
       evt.preventDefault();
       setMenuAnchor({
         x: evt.clientX,
@@ -1313,6 +1326,7 @@ export const Event = as<'div', EventProps>(
     };
 
     const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
+      setMenuImageSrc(undefined);
       const target = evt.currentTarget.parentElement?.parentElement ?? evt.currentTarget;
       setMenuAnchor(target.getBoundingClientRect());
     };
@@ -1367,6 +1381,13 @@ export const Event = as<'div', EventProps>(
                             <MessageSourceCodeItem
                               room={room}
                               mEvent={mEvent}
+                              onClose={closeMenu}
+                            />
+                          )}
+                          {menuImageSrc && (
+                            <MessageCopyImageItem
+                              key={menuImageSrc}
+                              src={menuImageSrc}
                               onClose={closeMenu}
                             />
                           )}
