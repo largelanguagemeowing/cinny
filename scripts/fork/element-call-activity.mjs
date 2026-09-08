@@ -1,0 +1,40 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+// Element Call 0.20.1 suppresses its speaking CSS in spotlight/one-to-one layouts.
+// Expose the existing raw observable value on the media tile for Cinny's sidebar.
+// Keep the patch guarded: an embedded-call upgrade must review this integration.
+export function patchCallActivity(source) {
+  const marker = 'videoFit:T,className:(0,z.default)(c,m5.tile,{[m5.speaking]:re';
+  if (source.split(marker).length !== 2 || !source.includes('w=V(t.speaking$)')) {
+    throw new Error(
+      'Element Call activity patch no longer matches; review the embedded call integration.'
+    );
+  }
+  return source.replace(
+    marker,
+    'videoFit:T,"data-cinny-speaking":w,"data-cinny-user-id":t.userId,className:(0,z.default)(c,m5.tile,{[m5.speaking]:re'
+  );
+}
+
+export function prepareElementCall() {
+  const root = path.resolve('node_modules/@element-hq/element-call-embedded');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  if (pkg.version !== '0.20.1')
+    throw new Error('Review the Element Call activity patch for the new version.');
+  const output = path.resolve('node_modules/.cache/cinny-element-call');
+  fs.rmSync(output, { recursive: true, force: true });
+  fs.cpSync(path.join(root, 'dist'), output, { recursive: true });
+  const asset = path.join(output, 'assets/index-Dul-9Slf.js');
+  const patchedAsset = path.join(output, 'assets/index-Dul-9Slf-cinny-activity.js');
+  fs.writeFileSync(patchedAsset, patchCallActivity(fs.readFileSync(asset, 'utf8')));
+  // A new URL ensures browsers do not reuse the unpatched cached widget bundle.
+  const html = path.join(output, 'index.html');
+  fs.writeFileSync(
+    html,
+    fs
+      .readFileSync(html, 'utf8')
+      .replaceAll('index-Dul-9Slf.js', 'index-Dul-9Slf-cinny-activity.js')
+  );
+  return output;
+}

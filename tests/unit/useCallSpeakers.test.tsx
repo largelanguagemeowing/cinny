@@ -24,7 +24,11 @@ it('keeps simultaneous speakers and updates for added or removed tiles', () => {
     }
   );
   const tile = (id: string, speaking: boolean, sharing = false) => ({
-    getAttribute: () => (sharing ? `${id}:DEVICE:screen-share` : `${id}:DEVICE`),
+    getAttribute(attribute: string) {
+      if (attribute === 'data-cinny-speaking') return String(this.speaking);
+      if (attribute === 'data-cinny-user-id') return sharing ? null : id;
+      return sharing ? `${id}:DEVICE:screen-share` : `${id}:DEVICE`;
+    },
     speaking,
     querySelectorAll: () => [{ getAttribute: () => 'Other label' }, { getAttribute: () => id }],
   });
@@ -36,7 +40,7 @@ it('keeps simultaneous speakers and updates for added or removed tiles', () => {
     iframe: {
       contentWindow: {
         getComputedStyle: (el: typeof alice) => ({
-          backgroundImage: el.speaking ? 'linear-gradient(green, green)' : 'none',
+          backgroundImage: 'none',
         }),
       },
       addEventListener: vi.fn(),

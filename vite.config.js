@@ -11,11 +11,14 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 import buildConfig from './build.config';
+import { prepareElementCall } from './scripts/fork/element-call-activity.mjs';
+
+const elementCallPath = prepareElementCall();
 
 const copyFiles = {
   targets: [
     {
-      src: 'node_modules/@element-hq/element-call-embedded/dist/*',
+      src: `${elementCallPath}/*`,
       dest: 'public/element-call',
     },
     {

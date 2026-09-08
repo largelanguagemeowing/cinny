@@ -17,22 +17,23 @@ export const useCallParticipantActivity = (callEmbed?: CallEmbed) => {
     const observeDocument = () => {
       observer?.disconnect();
       const { document } = callEmbed;
-      const window = callEmbed.iframe.contentWindow;
-      if (!document || !window) return;
+      if (!document) return;
 
       const updateSpeakers = () => {
         const next = new Set<string>();
         const sharing = new Set<string>();
         // Read every tile: a mutation batch need not include speakers whose state is unchanged.
         document.querySelectorAll('[data-video-fit]').forEach((element) => {
-          const background = window.getComputedStyle(element, '::before').backgroundImage;
-          const userId = Array.from(element.querySelectorAll('[aria-label]'))
-            .map((el) => el.getAttribute('aria-label'))
-            .find((label): label is string => !!label && isUserId(label));
+          const speaking = element.getAttribute('data-cinny-speaking') === 'true';
+          const userId =
+            element.getAttribute('data-cinny-user-id') ??
+            Array.from(element.querySelectorAll('[aria-label]'))
+              .map((el) => el.getAttribute('aria-label'))
+              .find((label): label is string => !!label && isUserId(label));
           if (!userId) return;
           // Element Call identifies local and remote presentation tiles with this suffix.
           if (element.getAttribute('data-id')?.endsWith(':screen-share')) sharing.add(userId);
-          else if (background && background !== 'none') next.add(userId);
+          else if (speaking) next.add(userId);
         });
         setScreenSharers((previous) =>
           previous.size === sharing.size && Array.from(sharing).every((id) => previous.has(id))
@@ -52,7 +53,7 @@ export const useCallParticipantActivity = (callEmbed?: CallEmbed) => {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ['class', 'style', 'aria-label', 'data-id'],
+        attributeFilter: ['data-cinny-speaking', 'data-cinny-user-id', 'aria-label', 'data-id'],
       });
       updateSpeakers();
     };

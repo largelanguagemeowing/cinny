@@ -314,7 +314,7 @@ function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
               )
             }
           >
-            <Avatar className={css.CallNavItemMemberAvatar} size="200" radii="Pill">
+            <Avatar className={css.CallNavItemMemberAvatar} size="200" radii="400">
               <UserAvatar
                 userId={userId}
                 src={avatarUrl}
