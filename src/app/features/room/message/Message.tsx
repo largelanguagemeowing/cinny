@@ -932,7 +932,8 @@ export const Message = as<'div', MessageProps>(
     const handleContextMenu: MouseEventHandler<HTMLDivElement> = (evt) => {
       if (evt.altKey || !window.getSelection()?.isCollapsed || edit) return;
       const tag = (evt.target as any).tagName;
-      if (typeof tag === 'string' && tag.toLowerCase() === 'a') return;
+      // Preserve the native image menu, including Copy image, in the timeline and viewer.
+      if (typeof tag === 'string' && ['a', 'img'].includes(tag.toLowerCase())) return;
       evt.preventDefault();
       setMenuAnchor({
         x: evt.clientX,
@@ -951,9 +952,7 @@ export const Message = as<'div', MessageProps>(
         // Don't trigger reply when double-clicking directly on text (which
         // selects a word). Only fire on non-text areas like padding, avatar, etc.
         const hasText = Array.from(target.childNodes).some(
-          (node) =>
-            node.nodeType === Node.TEXT_NODE &&
-            (node.textContent?.trim().length ?? 0) > 0
+          (node) => node.nodeType === Node.TEXT_NODE && (node.textContent?.trim().length ?? 0) > 0
         );
         if (hasText) return;
         onReplyClick(evt as any);
@@ -1302,7 +1301,8 @@ export const Event = as<'div', EventProps>(
     const handleContextMenu: MouseEventHandler<HTMLDivElement> = (evt) => {
       if (evt.altKey || !window.getSelection()?.isCollapsed) return;
       const tag = (evt.target as any).tagName;
-      if (typeof tag === 'string' && tag.toLowerCase() === 'a') return;
+      // Preserve the native image menu, including Copy image, in the timeline and viewer.
+      if (typeof tag === 'string' && ['a', 'img'].includes(tag.toLowerCase())) return;
       evt.preventDefault();
       setMenuAnchor({
         x: evt.clientX,

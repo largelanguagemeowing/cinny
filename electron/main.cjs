@@ -84,6 +84,24 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
+  // Electron has no default browser context menu. Copy the rendered image so
+  // authenticated media and decrypted blob URLs work without fetching again.
+  const imageWindow = mainWindow;
+  imageWindow.webContents.on('context-menu', (_event, params) => {
+    if (params.mediaType !== 'image') return;
+    Menu.buildFromTemplate([
+      {
+        label: 'Copy image',
+        enabled: params.hasImageContents,
+        click: () => {
+          if (!imageWindow.isDestroyed()) {
+            imageWindow.webContents.copyImageAt(params.x, params.y);
+          }
+        },
+      },
+    ]).popup({ window: imageWindow });
+  });
+
   // open target=_blank / window.open externally, never as a child window
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url) && !isInternalUrl(url)) shell.openExternal(url);
