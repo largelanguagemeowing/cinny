@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { color, config } from 'folds';
 
 export const CategoryButton = style({
@@ -12,7 +12,19 @@ export const CategoryButtonIcon = style({
   opacity: config.opacity.P400,
 });
 
+export const CallNavItemMembers = style({
+  width: '100%',
+  minWidth: 0,
+});
+
+export const CallNavItemMemberAvatar = style({
+  flexShrink: 0,
+  outline: '2px solid transparent',
+  outlineOffset: '2px',
+});
+
 export const CallNavItemMember = style({
+  minWidth: 0,
   width: '100%',
   border: 'none',
   background: 'transparent',
@@ -25,6 +37,13 @@ export const CallNavItemMember = style({
   selectors: {
     '&:hover': {
       backgroundColor: color.Background.ContainerHover,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${color.Primary.Main}`,
+      outlineOffset: '-2px',
+    },
+    '&[data-speaking=true]': {
+      color: color.Background.OnContainer,
     },
   },
 });
@@ -46,4 +65,8 @@ export const SortableNavItem = style({
       borderTop: `${config.borderWidth.B300} solid ${color.Success.Main}`,
     },
   },
+});
+
+globalStyle(`${CallNavItemMember}[data-speaking=true] ${CallNavItemMemberAvatar}`, {
+  outlineColor: color.Success.Main,
 });

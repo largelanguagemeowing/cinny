@@ -1,60 +1,75 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CallEmbed } from '../plugins/call';
-import { useMutationObserver } from './useMutationObserver';
 import { isUserId } from '../utils/matrix';
-import { useCallMembers, useCallSession } from './useCall';
 import { useCallJoined } from './useCallEmbed';
 
-export const useCallSpeakers = (callEmbed: CallEmbed): Set<string> => {
+export const useCallParticipantActivity = (callEmbed?: CallEmbed) => {
   const [speakers, setSpeakers] = useState(new Set<string>());
-  const callSession = useCallSession(callEmbed.room);
-  const callMembers = useCallMembers(callSession);
+  const [screenSharers, setScreenSharers] = useState(new Set<string>());
   const joined = useCallJoined(callEmbed);
 
-  const videoContainers = useMemo(() => {
-    if (callMembers && joined) return callEmbed.document?.querySelectorAll('[data-video-fit]');
-    return undefined;
-  }, [callEmbed, callMembers, joined]);
-
-  const mutationObserver = useMutationObserver(
-    useCallback(
-      (mutations) => {
-        const s = new Set<string>();
-
-        mutations.forEach((mutation) => {
-          if (mutation.type !== 'attributes') return;
-          const el = mutation.target as HTMLElement;
-
-          const style = callEmbed.iframe.contentWindow?.getComputedStyle(el, '::before');
-          if (!style) return;
-          const tileBackgroundImage = style.getPropertyValue('background-image');
-          const speaking = tileBackgroundImage !== 'none';
-          if (!speaking) return;
-
-          const speakerId = el.querySelector('[aria-label]')?.getAttribute('aria-label');
-          if (speakerId && isUserId(speakerId)) {
-            s.add(speakerId);
-          }
-        });
-
-        setSpeakers(s);
-      },
-      [callEmbed]
-    )
-  );
-
   useEffect(() => {
-    videoContainers?.forEach((element) => {
-      mutationObserver.observe(element, {
+    setSpeakers(new Set());
+    setScreenSharers(new Set());
+    if (!callEmbed || !joined) return undefined;
+
+    let observer: MutationObserver | undefined;
+    const observeDocument = () => {
+      observer?.disconnect();
+      const { document } = callEmbed;
+      const window = callEmbed.iframe.contentWindow;
+      if (!document || !window) return;
+
+      const updateSpeakers = () => {
+        const next = new Set<string>();
+        const sharing = new Set<string>();
+        // Read every tile: a mutation batch need not include speakers whose state is unchanged.
+        document.querySelectorAll('[data-video-fit]').forEach((element) => {
+          const background = window.getComputedStyle(element, '::before').backgroundImage;
+          const userId = Array.from(element.querySelectorAll('[aria-label]'))
+            .map((el) => el.getAttribute('aria-label'))
+            .find((label): label is string => !!label && isUserId(label));
+          if (!userId) return;
+          // Element Call identifies local and remote presentation tiles with this suffix.
+          if (element.getAttribute('data-id')?.endsWith(':screen-share')) sharing.add(userId);
+          else if (background && background !== 'none') next.add(userId);
+        });
+        setScreenSharers((previous) =>
+          previous.size === sharing.size && Array.from(sharing).every((id) => previous.has(id))
+            ? previous
+            : sharing
+        );
+        setSpeakers((previous) =>
+          previous.size === next.size && Array.from(next).every((id) => previous.has(id))
+            ? previous
+            : next
+        );
+      };
+
+      // Tiles can mount after joining and be replaced when the call layout changes.
+      observer = new MutationObserver(updateSpeakers);
+      observer.observe(document, {
+        subtree: true,
+        childList: true,
         attributes: true,
-        attributeFilter: ['class', 'style'],
+        attributeFilter: ['class', 'style', 'aria-label', 'data-id'],
       });
-    });
-
-    return () => {
-      mutationObserver.disconnect();
+      updateSpeakers();
     };
-  }, [videoContainers, mutationObserver]);
 
-  return speakers;
+    observeDocument();
+    callEmbed.iframe.addEventListener('load', observeDocument);
+    return () => {
+      observer?.disconnect();
+      callEmbed.iframe.removeEventListener('load', observeDocument);
+    };
+  }, [callEmbed, joined]);
+
+  return {
+    speakers: callEmbed && joined ? speakers : new Set<string>(),
+    screenSharers: callEmbed && joined ? screenSharers : new Set<string>(),
+  };
 };
+
+export const useCallSpeakers = (callEmbed?: CallEmbed): Set<string> =>
+  useCallParticipantActivity(callEmbed).speakers;

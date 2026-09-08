@@ -20,11 +20,17 @@ import {
 import { useFocusWithin, useHover } from 'react-aria';
 import FocusTrap from 'focus-trap-react';
 import { useAtom, useAtomValue } from 'jotai';
+import { CallMembership } from 'matrix-js-sdk/lib/matrixrtc/CallMembership';
 import { NavItem, NavItemContent, NavItemOptions, NavLink } from '../../components/nav';
 import { UnreadBadge, UnreadBadgeCenter } from '../../components/unread-badge';
 import { RoomAvatar, RoomIcon } from '../../components/room-avatar';
-import { CallMembership } from 'matrix-js-sdk/lib/matrixrtc/CallMembership';
-import { getDirectRoomAvatarUrl, getMemberAvatarMxc, getMemberDisplayName, getRoomAvatarUrl, getStateEvent } from '../../utils/room';
+import {
+  getDirectRoomAvatarUrl,
+  getMemberAvatarMxc,
+  getMemberDisplayName,
+  getRoomAvatarUrl,
+  getStateEvent,
+} from '../../utils/room';
 import { nameInitials } from '../../utils/common';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useRoomUnread } from '../../state/hooks/unread';
@@ -38,7 +44,12 @@ import { useRoomTypingMember } from '../../hooks/useRoomTypingMembers';
 import { TypingIndicator } from '../../components/typing-indicator';
 import { stopPropagation } from '../../utils/keyboard';
 import { getMatrixToRoom } from '../../plugins/matrix-to';
-import { getCanonicalAliasOrRoomId, getMxIdLocalPart, isRoomAlias, mxcUrlToHttp } from '../../utils/matrix';
+import {
+  getCanonicalAliasOrRoomId,
+  getMxIdLocalPart,
+  isRoomAlias,
+  mxcUrlToHttp,
+} from '../../utils/matrix';
 import { getViaServers } from '../../plugins/via-servers';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { UserAvatar } from '../../components/user-avatar';
@@ -62,6 +73,7 @@ import { PresenceStatus } from '../../components/presence/PresenceStatus';
 import { useRoomName } from '../../hooks/useRoomMeta';
 import { useCallMembers, useCallSession } from '../../hooks/useCall';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
+import { useCallParticipantActivity } from '../../hooks/useCallSpeakers';
 import { callChatAtom } from '../../state/callEmbed';
 import { useCallPreferencesAtom } from '../../state/hooks/callPreferences';
 import { useAutoDiscoveryInfo } from '../../hooks/useAutoDiscoveryInfo';
@@ -255,14 +267,22 @@ function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const openUserProfile = useOpenUserRoomProfile();
+  const callEmbed = useCallEmbed();
+  const { speakers, screenSharers } = useCallParticipantActivity(
+    callEmbed?.roomId === room.roomId ? callEmbed : undefined
+  );
 
   return (
-    <Box direction="Column" gap="100" style={{ padding: `${config.space.S100} 0 ${config.space.S100} ${config.space.S500}` }}>
+    <Box
+      className={css.CallNavItemMembers}
+      direction="Column"
+      gap="100"
+      style={{ padding: `${config.space.S100} 0 ${config.space.S100} ${config.space.S500}` }}
+    >
       {members.map((callMember) => {
         const userId = callMember.sender;
         if (!userId) return null;
-        const name =
-          getMemberDisplayName(room, userId) ?? getMxIdLocalPart(userId) ?? userId;
+        const name = getMemberDisplayName(room, userId) ?? getMxIdLocalPart(userId) ?? userId;
         const avatarMxc = getMemberAvatarMxc(room, userId);
         const avatarUrl = avatarMxc
           ? mxcUrlToHttp(mx, avatarMxc, useAuthentication, 96, 96) ?? undefined
@@ -273,6 +293,14 @@ function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
             key={callMember.memberId}
             as="button"
             className={css.CallNavItemMember}
+            aria-label={[
+              name,
+              speakers.has(userId) && 'speaking',
+              screenSharers.has(userId) && 'sharing screen',
+            ]
+              .filter(Boolean)
+              .join(', ')}
+            data-speaking={speakers.has(userId)}
             alignItems="Center"
             gap="200"
             shrink="No"
@@ -286,7 +314,7 @@ function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
               )
             }
           >
-            <Avatar size="200" radii="400">
+            <Avatar className={css.CallNavItemMemberAvatar} size="200" radii="Pill">
               <UserAvatar
                 userId={userId}
                 src={avatarUrl}
@@ -294,9 +322,16 @@ function CallNavItemMembers({ room, members }: CallNavItemMembersProps) {
                 renderFallback={() => <Icon size="50" src={Icons.User} filled />}
               />
             </Avatar>
-            <Text size="T300" priority="300" truncate>
+            <Text size="T300" priority={speakers.has(userId) ? '500' : '300'} truncate>
               {name}
             </Text>
+            {screenSharers.has(userId) && (
+              <Box shrink="No" style={{ marginLeft: 'auto' }} title="Sharing screen">
+                <Badge size="300" variant="Critical" fill="Solid" radii="300">
+                  <Text size="L400">LIVE</Text>
+                </Badge>
+              </Box>
+            )}
           </Box>
         );
       })}
@@ -434,110 +469,111 @@ export function RoomNavItem({
   }
 
   return (
-    <NavItem
-      variant="Background"
-      radii="400"
-      highlight={unread !== undefined}
-      aria-selected={selected}
-      data-hover={!!menuAnchor}
-      onContextMenu={handleContextMenu}
-      style={callMembers.length > 0 ? { flexWrap: 'wrap' } : undefined}
-      {...hoverProps}
-      {...focusWithinProps}
-    >
-      <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
-        <NavItemContent>
-          <Box as="span" grow="Yes" alignItems="Center" gap="200">
-            <AvatarPresence variant="Background" badge={presenceBadge}>
-              <Avatar size="200" radii="400">
-                {avatarContent}
-              </Avatar>
-            </AvatarPresence>
-            <Box as="span" grow="Yes" direction="Column">
-              <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
-                {displayName}
-              </Text>
-              {(statusMsg || richPresence) && (
-                <PresenceStatus
-                  className={css.DmStatus}
-                  status={statusMsg}
-                  richPresence={richPresence}
+    <Box direction="Column">
+      <NavItem
+        variant="Background"
+        radii="400"
+        highlight={unread !== undefined}
+        aria-selected={selected}
+        data-hover={!!menuAnchor}
+        onContextMenu={handleContextMenu}
+        {...hoverProps}
+        {...focusWithinProps}
+      >
+        <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
+          <NavItemContent>
+            <Box as="span" grow="Yes" alignItems="Center" gap="200">
+              <AvatarPresence variant="Background" badge={presenceBadge}>
+                <Avatar size="200" radii="400">
+                  {avatarContent}
+                </Avatar>
+              </AvatarPresence>
+              <Box as="span" grow="Yes" direction="Column">
+                <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
+                  {displayName}
+                </Text>
+                {(statusMsg || richPresence) && (
+                  <PresenceStatus
+                    className={css.DmStatus}
+                    status={statusMsg}
+                    richPresence={richPresence}
+                  />
+                )}
+              </Box>
+              {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
+                <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
+                  <TypingIndicator size="300" disableAnimation />
+                </Badge>
+              )}
+              {!optionsVisible && unread && (
+                <UnreadBadgeCenter>
+                  <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+                </UnreadBadgeCenter>
+              )}
+              {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
+                <Icon
+                  size="50"
+                  src={getRoomNotificationModeIcon(notificationMode)}
+                  aria-label={notificationMode}
                 />
               )}
             </Box>
-            {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
-              <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
-                <TypingIndicator size="300" disableAnimation />
-              </Badge>
+          </NavItemContent>
+        </NavLink>
+        {optionsVisible && (
+          <NavItemOptions>
+            {selected && (callEmbed?.roomId === room.roomId || room.isCallRoom()) && (
+              <CallChatToggle />
             )}
-            {!optionsVisible && unread && (
-              <UnreadBadgeCenter>
-                <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
-              </UnreadBadgeCenter>
-            )}
-            {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
-              <Icon
-                size="50"
-                src={getRoomNotificationModeIcon(notificationMode)}
-                aria-label={notificationMode}
-              />
-            )}
-          </Box>
-        </NavItemContent>
-      </NavLink>
-      {optionsVisible && (
-        <NavItemOptions>
-          {selected && (callEmbed?.roomId === room.roomId || room.isCallRoom()) && (
-            <CallChatToggle />
-          )}
-          <PopOut
-            id={`menu-${room.roomId}`}
-            aria-expanded={!!menuAnchor}
-            anchor={menuAnchor}
-            offset={menuAnchor?.width === 0 ? 0 : undefined}
-            alignOffset={menuAnchor?.width === 0 ? 0 : -5}
-            position="Bottom"
-            align={menuAnchor?.width === 0 ? 'Start' : 'End'}
-            content={
-              <FocusTrap
-                focusTrapOptions={{
-                  initialFocus: false,
-                  returnFocusOnDeactivate: false,
-                  onDeactivate: () => setMenuAnchor(undefined),
-                  clickOutsideDeactivates: true,
-                  isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
-                  isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
-                  escapeDeactivates: stopPropagation,
-                }}
-              >
-                <RoomNavItemMenu
-                  room={room}
-                  requestClose={() => setMenuAnchor(undefined)}
-                  notificationMode={notificationMode}
-                />
-              </FocusTrap>
-            }
-          >
-            <IconButton
-              onClick={handleOpenMenu}
-              aria-pressed={!!menuAnchor}
-              aria-controls={`menu-${room.roomId}`}
-              aria-label="More Options"
-              variant="Background"
-              fill="None"
-              size="300"
-              radii="300"
+            <PopOut
+              id={`menu-${room.roomId}`}
+              aria-expanded={!!menuAnchor}
+              anchor={menuAnchor}
+              offset={menuAnchor?.width === 0 ? 0 : undefined}
+              alignOffset={menuAnchor?.width === 0 ? 0 : -5}
+              position="Bottom"
+              align={menuAnchor?.width === 0 ? 'Start' : 'End'}
+              content={
+                <FocusTrap
+                  focusTrapOptions={{
+                    initialFocus: false,
+                    returnFocusOnDeactivate: false,
+                    onDeactivate: () => setMenuAnchor(undefined),
+                    clickOutsideDeactivates: true,
+                    isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
+                    isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
+                    escapeDeactivates: stopPropagation,
+                  }}
+                >
+                  <RoomNavItemMenu
+                    room={room}
+                    requestClose={() => setMenuAnchor(undefined)}
+                    notificationMode={notificationMode}
+                  />
+                </FocusTrap>
+              }
             >
-              <Icon size="50" src={Icons.VerticalDots} />
-            </IconButton>
-          </PopOut>
-        </NavItemOptions>
-      )}
+              <IconButton
+                onClick={handleOpenMenu}
+                aria-pressed={!!menuAnchor}
+                aria-controls={`menu-${room.roomId}`}
+                aria-label="More Options"
+                variant="Background"
+                fill="None"
+                size="300"
+                radii="300"
+              >
+                <Icon size="50" src={Icons.VerticalDots} />
+              </IconButton>
+            </PopOut>
+          </NavItemOptions>
+        )}
+      </NavItem>
       {callMembers.length > 0 && (
         <Box style={{ flexBasis: '100%', width: '100%' }}>
           <CallNavItemMembers room={room} members={callMembers} />
         </Box>
       )}
-    </NavItem>
+    </Box>
   );
 }
