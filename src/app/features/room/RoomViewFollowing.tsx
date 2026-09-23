@@ -23,6 +23,8 @@ import { useRoomLatestRenderedEvent } from '../../hooks/useRoomLatestRenderedEve
 import { useRoomEventReaders } from '../../hooks/useRoomEventReaders';
 import { EventReaders } from '../../components/event-readers';
 import { stopPropagation } from '../../utils/keyboard';
+import { useSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
 
 export function RoomViewFollowingPlaceholder() {
   return <div className={css.RoomViewFollowingPlaceholder} />;
@@ -35,6 +37,7 @@ export const RoomViewFollowing = as<'div', RoomViewFollowingProps>(
   ({ className, room, ...props }, ref) => {
     const mx = useMatrixClient();
     const [open, setOpen] = useState(false);
+    const [hideActivity] = useSetting(settingsAtom, 'hideActivity');
     const latestEvent = useRoomLatestRenderedEvent(room);
     const latestEventReaders = useRoomEventReaders(room, latestEvent?.getId());
     const names = latestEventReaders
@@ -42,6 +45,11 @@ export const RoomViewFollowing = as<'div', RoomViewFollowingProps>(
       .map(
         (readerId) => getMemberDisplayName(room, readerId) ?? getMxIdLocalPart(readerId) ?? readerId
       );
+    // only mention ourselves when a public read receipt went out
+    const selfFollowing = !hideActivity && latestEventReaders.includes(mx.getUserId() ?? '');
+    const parts = names.slice(0, 3);
+    if (names.length > 3) parts.push(`${names.length - 3} others`);
+    if (names.length > 0 && selfFollowing) parts.push('you');
 
     const eventId = latestEvent?.getId();
 
@@ -79,62 +87,22 @@ export const RoomViewFollowing = as<'div', RoomViewFollowingProps>(
             <>
               <Icon style={{ opacity: config.opacity.P300 }} size="100" src={Icons.CheckTwice} />
               <Text size="T300" truncate>
-                {names.length === 1 && (
-                  <>
-                    <b>{names[0]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' is following the conversation.'}
-                    </Text>
-                  </>
-                )}
-                {names.length === 2 && (
-                  <>
-                    <b>{names[0]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' and '}
-                    </Text>
-                    <b>{names[1]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' are following the conversation.'}
-                    </Text>
-                  </>
-                )}
-                {names.length === 3 && (
-                  <>
-                    <b>{names[0]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {', '}
-                    </Text>
-                    <b>{names[1]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' and '}
-                    </Text>
-                    <b>{names[2]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' are following the conversation.'}
-                    </Text>
-                  </>
-                )}
-                {names.length > 3 && (
-                  <>
-                    <b>{names[0]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {', '}
-                    </Text>
-                    <b>{names[1]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {', '}
-                    </Text>
-                    <b>{names[2]}</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' and '}
-                    </Text>
-                    <b>{names.length - 3} others</b>
-                    <Text as="span" size="Inherit" priority="300">
-                      {' are following the conversation.'}
-                    </Text>
-                  </>
-                )}
+                {parts.map((part, index) => (
+                  // eslint-disable-next-line react/no-array-index-key
+                  <React.Fragment key={index}>
+                    {index > 0 && (
+                      <Text as="span" size="Inherit" priority="300">
+                        {index === parts.length - 1 ? ' and ' : ', '}
+                      </Text>
+                    )}
+                    <b>{part}</b>
+                  </React.Fragment>
+                ))}
+                <Text as="span" size="Inherit" priority="300">
+                  {parts.length === 1
+                    ? ' is following the conversation.'
+                    : ' are following the conversation.'}
+                </Text>
               </Text>
             </>
           )}
