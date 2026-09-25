@@ -14,6 +14,7 @@ import { isKeyHotkey } from 'is-hotkey';
 import { EventType, IContent, MsgType, RelationType, Room } from 'matrix-js-sdk';
 import { ReactEditor } from 'slate-react';
 import { Transforms, Editor } from 'slate';
+import FocusTrap from 'focus-trap-react';
 import {
   Box,
   Dialog,
@@ -21,10 +22,13 @@ import {
   IconButton,
   Icons,
   Line,
+  Menu,
+  MenuItem,
   Overlay,
   OverlayBackdrop,
   OverlayCenter,
   PopOut,
+  RectCords,
   Scroll,
   Text,
   color,
@@ -129,6 +133,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useRoomCreatorsTag } from '../../hooks/useRoomCreatorsTag';
 import { usePowerLevelTags } from '../../hooks/usePowerLevelTags';
 import { useComposingCheck } from '../../hooks/useComposingCheck';
+import { PollCreator, PollIcon } from '../../components/poll';
+import { stopPropagation } from '../../utils/keyboard';
 
 const gifIconStyles: CSSProperties = {
   border: '1.5px solid currentColor',
@@ -177,6 +183,8 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
     const commands = useCommands(mx, room);
     const isMobile = useMemo(mobileOrTablet, []);
     const emojiBtnRef = useRef<HTMLButtonElement>(null);
+    const [attachMenuAnchor, setAttachMenuAnchor] = useState<RectCords>();
+    const [pollCreator, setPollCreator] = useState(false);
     const lastSendTouchEndRef = useRef(-Infinity);
     const roomToParents = useAtomValue(roomToParentsAtom);
     const powerLevels = usePowerLevelsContext();
@@ -646,6 +654,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
             )}
           </UploadBoard>
         )}
+        {pollCreator && <PollCreator room={room} requestClose={() => setPollCreator(false)} />}
         <Overlay
           open={dropZoneVisible}
           backdrop={<OverlayBackdrop />}
@@ -749,14 +758,66 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
             )
           }
           before={
-            <IconButton
-              onClick={() => pickFile('*')}
-              variant="SurfaceVariant"
-              size="300"
-              radii="300"
+            <PopOut
+              anchor={attachMenuAnchor}
+              position="Top"
+              align="Start"
+              offset={8}
+              content={
+                <FocusTrap
+                  focusTrapOptions={{
+                    initialFocus: false,
+                    returnFocusOnDeactivate: false,
+                    onDeactivate: () => setAttachMenuAnchor(undefined),
+                    clickOutsideDeactivates: true,
+                    isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
+                    isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
+                    escapeDeactivates: stopPropagation,
+                  }}
+                >
+                  <Menu style={{ minWidth: toRem(180) }}>
+                    <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+                      <MenuItem
+                        size="300"
+                        radii="300"
+                        before={<Icon size="100" src={Icons.Attachment} />}
+                        onClick={() => {
+                          setAttachMenuAnchor(undefined);
+                          pickFile('*');
+                        }}
+                      >
+                        <Text style={{ flexGrow: 1 }} as="span" size="T300">
+                          Upload a File
+                        </Text>
+                      </MenuItem>
+                      <MenuItem
+                        size="300"
+                        radii="300"
+                        before={<Icon size="100" src={PollIcon} />}
+                        onClick={() => {
+                          setAttachMenuAnchor(undefined);
+                          setPollCreator(true);
+                        }}
+                      >
+                        <Text style={{ flexGrow: 1 }} as="span" size="T300">
+                          Create Poll
+                        </Text>
+                      </MenuItem>
+                    </Box>
+                  </Menu>
+                </FocusTrap>
+              }
             >
-              <Icon src={Icons.PlusCircle} />
-            </IconButton>
+              <IconButton
+                onClick={(evt) => setAttachMenuAnchor(evt.currentTarget.getBoundingClientRect())}
+                aria-pressed={!!attachMenuAnchor}
+                variant="SurfaceVariant"
+                size="300"
+                radii="300"
+              >
+                <Icon src={Icons.PlusCircle} />
+              </IconButton>
+            </PopOut>
           }
           after={
             <>

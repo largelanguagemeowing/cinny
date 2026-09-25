@@ -4,6 +4,7 @@ import React, { MouseEventHandler, ReactNode, useCallback, useMemo } from 'react
 import classNames from 'classnames';
 import { getMemberDisplayName, trimReplyFromBody } from '../../utils/room';
 import { getMxIdLocalPart } from '../../utils/matrix';
+import { getPollQuestion } from '../../utils/poll';
 import { LinePlaceholder } from './placeholder';
 import { randomNumberBetween } from '../../utils/common';
 import * as css from './Reply.css';
@@ -84,7 +85,9 @@ export const Reply = as<'div', ReplyProps>(
     );
     const replyEvent = useRoomEvent(room, replyEventId, getFromLocalTimeline);
 
-    const { body } = replyEvent?.getContent() ?? {};
+    const replyContent = replyEvent?.getContent() ?? {};
+    const body: string | undefined =
+      replyContent.body ?? (replyEvent ? getPollQuestion(replyContent) : undefined);
     const sender = replyEvent?.getSender();
     const powerTag = sender ? getMemberPowerTag?.(sender) : undefined;
     const tagColor = powerTag?.color ? accessibleTagColors?.get(powerTag.color) : undefined;

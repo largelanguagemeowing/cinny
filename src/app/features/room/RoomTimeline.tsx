@@ -23,6 +23,9 @@ import {
   Room,
   RoomEvent,
   RoomEventHandlerMap,
+  M_POLL_END,
+  M_POLL_START,
+  RelationType,
 } from 'matrix-js-sdk';
 import { HTMLReactParserOptions } from 'html-react-parser';
 import classNames from 'classnames';
@@ -87,6 +90,8 @@ import {
 import { useSetting } from '../../state/hooks/settings';
 import { MessageLayout, settingsAtom } from '../../state/settings';
 import { useMatrixEventRenderer } from '../../hooks/useMatrixEventRenderer';
+import { PollContent, PollEnd, PollIcon } from '../../components/poll';
+import { isPollStartType, parsePollStart } from '../../utils/poll';
 import { Reactions, Message, Event, EncryptedContent } from './message';
 import { useMemberEventParser } from '../../hooks/useMemberEventParser';
 import * as customHtmlCss from '../../styles/CustomHtml.css';
@@ -1064,6 +1069,144 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   );
   const { t } = useTranslation();
 
+  const renderPollContent = (mEvent: MatrixEvent) => {
+    const poll = parsePollStart(mEvent.getContent());
+    if (!poll) {
+      return (
+        <Text>
+          <MessageUnsupportedContent />
+        </Text>
+      );
+    }
+    return <PollContent room={room} mEvent={mEvent} poll={poll} />;
+  };
+
+  const renderPollEvent = (
+    mEventId: string,
+    mEvent: MatrixEvent,
+    item: number,
+    timelineSet: EventTimelineSet,
+    collapse: boolean
+  ) => {
+    const reactionRelations = getEventReactions(timelineSet, mEventId);
+    const reactions = reactionRelations && reactionRelations.getSortedAnnotationsByKey();
+    const hasReactions = reactions && reactions.length > 0;
+    const { replyEventId, threadRootId } = mEvent;
+    const highlighted = focusItem?.index === item && focusItem.highlight;
+
+    return (
+      <Message
+        key={mEvent.getId()}
+        data-message-item={item}
+        data-message-id={mEventId}
+        room={room}
+        mEvent={mEvent}
+        messageSpacing={messageSpacing}
+        messageLayout={messageLayout}
+        collapse={collapse}
+        highlight={highlighted}
+        canDelete={canRedact || (canDeleteOwn && mEvent.getSender() === mx.getUserId())}
+        canSendReaction={canSendReaction}
+        canPinEvent={canPinEvent}
+        imagePackRooms={imagePackRooms}
+        relations={hasReactions ? reactionRelations : undefined}
+        onUserClick={handleUserClick}
+        onUsernameClick={handleUserClick}
+        onReplyClick={handleReplyClick}
+        onReactionToggle={handleReactionToggle}
+        reactions={
+          reactionRelations && (
+            <Reactions
+              style={{ marginTop: config.space.S200 }}
+              room={room}
+              relations={reactionRelations}
+              mEventId={mEventId}
+              canSendReaction={canSendReaction}
+              onReactionToggle={handleReactionToggle}
+            />
+          )
+        }
+        reply={
+          replyEventId && (
+            <Reply
+              room={room}
+              timelineSet={timelineSet}
+              replyEventId={replyEventId}
+              threadRootId={threadRootId}
+              onClick={handleOpenReply}
+              getMemberPowerTag={getMemberPowerTag}
+              accessibleTagColors={accessiblePowerTagColors}
+              legacyUsernameColor={legacyUsernameColor || direct}
+            />
+          )
+        }
+        hideReadReceipts={hideActivity}
+        showDeveloperTools={showDeveloperTools}
+        memberPowerTag={getMemberPowerTag(mEvent.getSender() ?? '')}
+        accessibleTagColors={accessiblePowerTagColors}
+        legacyUsernameColor={legacyUsernameColor || direct}
+        hour24Clock={hour24Clock}
+        dateFormatString={dateFormatString}
+      >
+        {mEvent.isRedacted() ? (
+          <RedactedContent reason={mEvent.getUnsigned().redacted_because?.content.reason} />
+        ) : (
+          renderPollContent(mEvent)
+        )}
+      </Message>
+    );
+  };
+
+  const renderPollEndEvent = (mEventId: string, mEvent: MatrixEvent, item: number) => {
+    if (!mEvent.getRelation()?.event_id) return null;
+    const highlighted = focusItem?.index === item && focusItem.highlight;
+    const senderId = mEvent.getSender() ?? '';
+    const senderName =
+      getMemberDisplayName(room, senderId) || getMxIdLocalPart(senderId) || senderId;
+
+    return (
+      <PollEnd
+        key={mEvent.getId()}
+        room={room}
+        mEvent={mEvent}
+        senderName={senderName}
+        onViewPoll={handleOpenReply}
+      >
+        {(content) => (
+          <Event
+            data-message-item={item}
+            data-message-id={mEventId}
+            room={room}
+            mEvent={mEvent}
+            highlight={highlighted}
+            messageSpacing={messageSpacing}
+            canDelete={canRedact || mEvent.getSender() === mx.getUserId()}
+            hideReadReceipts={hideActivity}
+            showDeveloperTools={showDeveloperTools}
+          >
+            <EventContent
+              messageLayout={messageLayout}
+              time={
+                <Time
+                  ts={mEvent.getTs()}
+                  compact={messageLayout === MessageLayout.Compact}
+                  hour24Clock={hour24Clock}
+                  dateFormatString={dateFormatString}
+                />
+              }
+              iconSrc={PollIcon}
+              content={
+                <Box grow="Yes" direction="Column">
+                  {content}
+                </Box>
+              }
+            />
+          </Event>
+        )}
+      </PollEnd>
+    );
+  };
+
   const renderMatrixEvent = useMatrixEventRenderer<
     [string, MatrixEvent, number, EventTimelineSet, boolean]
   >(
@@ -1159,6 +1302,19 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         );
       },
       [MessageEvent.RoomMessageEncrypted]: (mEventId, mEvent, item, timelineSet, collapse) => {
+        // Still-encrypted poll votes/ends: the relation is readable before
+        // decryption. Votes stay hidden; ends become a system line once decrypted.
+        if (mEvent.getRelation()?.rel_type === RelationType.Reference) {
+          return (
+            <EncryptedContent key={mEvent.getId()} mEvent={mEvent}>
+              {() =>
+                M_POLL_END.matches(mEvent.getType())
+                  ? renderPollEndEvent(mEventId, mEvent, item)
+                  : null
+              }
+            </EncryptedContent>
+          );
+        }
         const reactionRelations = getEventReactions(timelineSet, mEventId);
         const reactions = reactionRelations && reactionRelations.getSortedAnnotationsByKey();
         const hasReactions = reactions && reactions.length > 0;
@@ -1262,6 +1418,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
                     />
                   );
                 }
+                if (isPollStartType(mEvent.getType())) return renderPollContent(mEvent);
                 if (mEvent.getType() === MessageEvent.RoomMessageEncrypted)
                   return (
                     <Text>
@@ -1357,6 +1514,10 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
           </Message>
         );
       },
+      [M_POLL_START.altName]: renderPollEvent,
+      [M_POLL_START.name]: renderPollEvent,
+      [M_POLL_END.altName]: renderPollEndEvent,
+      [M_POLL_END.name]: renderPollEndEvent,
       [StateEvent.RoomMember]: (mEventId, mEvent, item) => {
         const membershipChanged = isMembershipChanged(mEvent);
         if (membershipChanged && hideMembershipEvents) return null;
