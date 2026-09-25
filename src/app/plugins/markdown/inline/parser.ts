@@ -1,4 +1,5 @@
 import {
+  AngleLinkRule,
   BoldRule,
   CodeRule,
   EscapeRule,
@@ -9,7 +10,13 @@ import {
   StrikeRule,
   UnderlineRule,
 } from './rules';
-import { runInlineRule, runInlineRules } from './runner';
+import {
+  InlineMDRange,
+  findInlineRule,
+  runInlineRule,
+  runInlineRules,
+  tokenizeInline,
+} from './runner';
 import { InlineMDParser } from './type';
 
 const LeveledRules = [
@@ -20,6 +27,7 @@ const LeveledRules = [
   StrikeRule,
   SpoilerRule,
   LinkRule,
+  AngleLinkRule,
   EscapeRule,
 ];
 
@@ -38,3 +46,24 @@ export const parseInlineMD: InlineMDParser = (text) => {
 
   return result ?? text;
 };
+
+/**
+ * Finds formatted and syntax ranges of inline markdown in plain text.
+ * Mirrors the rule order of `parseInlineMD`.
+ *
+ * @param text - The raw (unsanitized) markdown text.
+ * @param offset - The offset added to every range.
+ * @returns The ranges found in the text.
+ */
+export const tokenizeInlineMD = (text: string, offset = 0): InlineMDRange[] =>
+  tokenizeInline(
+    text,
+    (t) => {
+      const codeMatch = CodeRule.match(t);
+      if (codeMatch) return [CodeRule, codeMatch];
+      return findInlineRule(t, LeveledRules);
+    },
+    offset
+  );
+
+export type { InlineMDRange };

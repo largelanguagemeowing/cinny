@@ -3,6 +3,7 @@ import { KeyboardEvent } from 'react';
 import { Editor, Element as SlateElement, Range, Transforms } from 'slate';
 import { isAnyMarkActive, isBlockActive, removeAllMark, toggleBlock, toggleMark } from './utils';
 import { BlockType, MarkType } from './types';
+import { toggleMarkdownWrap } from './markdown';
 
 export const INLINE_HOTKEYS: Record<string, MarkType> = {
   'mod+b': MarkType.Bold,
@@ -13,6 +14,15 @@ export const INLINE_HOTKEYS: Record<string, MarkType> = {
   'mod+h': MarkType.Spoiler,
 };
 const INLINE_KEYS = Object.keys(INLINE_HOTKEYS);
+
+const MARKDOWN_SEQUENCE: Record<MarkType, string> = {
+  [MarkType.Bold]: '**',
+  [MarkType.Italic]: '*',
+  [MarkType.Underline]: '__',
+  [MarkType.StrikeThrough]: '~~',
+  [MarkType.Code]: '`',
+  [MarkType.Spoiler]: '||',
+};
 
 export const BLOCK_HOTKEYS: Record<string, BlockType> = {
   'mod+7': BlockType.OrderedList,
@@ -28,7 +38,11 @@ const isHeading3 = isKeyHotkey('mod+3');
 /**
  * @return boolean true if shortcut is toggled.
  */
-export const toggleKeyboardShortcut = (editor: Editor, event: KeyboardEvent<Element>): boolean => {
+export const toggleKeyboardShortcut = (
+  editor: Editor,
+  event: KeyboardEvent<Element>,
+  markdown?: boolean
+): boolean => {
   if (isKeyHotkey('backspace', event) && editor.selection && Range.isCollapsed(editor.selection)) {
     const startPoint = Range.start(editor.selection);
     if (startPoint.offset !== 0) return false;
@@ -107,7 +121,9 @@ export const toggleKeyboardShortcut = (editor: Editor, event: KeyboardEvent<Elem
     : INLINE_KEYS.find((hotkey) => {
         if (isKeyHotkey(hotkey, event)) {
           event.preventDefault();
-          toggleMark(editor, INLINE_HOTKEYS[hotkey]);
+          // Like Discord: formatting hotkeys write markdown when it is enabled.
+          if (markdown) toggleMarkdownWrap(editor, MARKDOWN_SEQUENCE[INLINE_HOTKEYS[hotkey]]);
+          else toggleMark(editor, INLINE_HOTKEYS[hotkey]);
           return true;
         }
         return false;

@@ -1,20 +1,24 @@
 import { Scroll, Text } from 'folds';
 import React from 'react';
 import {
+  ReactEditor,
   RenderElementProps,
   RenderLeafProps,
   useFocused,
   useSelected,
   useSlate,
 } from 'slate-react';
+import classNames from 'classnames';
 
 import * as css from '../../styles/CustomHtml.css';
+import * as editorCss from './Editor.css';
 import { CommandElement, EmoticonElement, LinkElement, MentionElement } from './slate';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { getBeginCommand } from './utils';
 import { BlockType } from './types';
 import { mxcUrlToHttp } from '../../utils/matrix';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { MarkdownLine, getMarkdownLines } from './markdown';
 
 // Put this at the start and end of an inline component to work around this Chromium bug:
 // https://bugs.chromium.org/p/chromium/issues/detail?id=1249405
@@ -118,9 +122,49 @@ function RenderLinkElement({
   );
 }
 
-export function RenderElement({ attributes, element, children }: RenderElementProps) {
+const getMarkdownLineClass = (line: MarkdownLine | undefined): string | undefined => {
+  switch (line?.kind) {
+    case 'code':
+      return editorCss.MdLineCode;
+    case 'heading':
+      return editorCss.MdLineHeading[line.level];
+    case 'quote':
+      return editorCss.MdLineQuote;
+    case 'subtext':
+      return editorCss.MdLineSubtext;
+    default:
+      return undefined;
+  }
+};
+
+function RenderMarkdownParagraph({ attributes, element, children }: RenderElementProps) {
+  // useSlate re-renders on every change, as a line's style can depend on lines above it.
+  const editor = useSlate();
+  const [index] = ReactEditor.findPath(editor, element);
+  const line = getMarkdownLines(editor)[index];
+
+  return (
+    <Text {...attributes} className={classNames(css.Paragraph, getMarkdownLineClass(line))}>
+      {children}
+    </Text>
+  );
+}
+
+export function RenderElement({
+  attributes,
+  element,
+  children,
+  markdown,
+}: RenderElementProps & { markdown?: boolean }) {
   switch (element.type) {
     case BlockType.Paragraph:
+      if (markdown) {
+        return (
+          <RenderMarkdownParagraph attributes={attributes} element={element}>
+            {children}
+          </RenderMarkdownParagraph>
+        );
+      }
       return (
         <Text {...attributes} className={css.Paragraph}>
           {children}
@@ -226,7 +270,21 @@ export function RenderElement({ attributes, element, children }: RenderElementPr
 }
 
 export function RenderLeaf({ attributes, leaf, children }: RenderLeafProps) {
-  let child = children;
+  let md = children;
+  // text-decoration from nested elements combines, so underline and strike can both show.
+  if (leaf.mdUnderline) md = <span className={editorCss.MdUnderline}>{md}</span>;
+  if (leaf.mdStrikeThrough) md = <span className={editorCss.MdStrikeThrough}>{md}</span>;
+  const mdClass = classNames({
+    [editorCss.MdSyntax]: leaf.mdSyntax,
+    [editorCss.MdBold]: leaf.mdBold,
+    [editorCss.MdItalic]: leaf.mdItalic,
+    [editorCss.MdCode]: leaf.mdCode,
+    [editorCss.MdSpoiler]: leaf.mdSpoiler,
+    [editorCss.MdLink]: leaf.mdLink,
+  });
+  if (mdClass) md = <span className={mdClass}>{md}</span>;
+
+  let child = md;
   if (leaf.bold)
     child = (
       <strong {...attributes}>
@@ -270,7 +328,7 @@ export function RenderLeaf({ attributes, leaf, children }: RenderLeafProps) {
       </span>
     );
 
-  if (child !== children) return child;
+  if (child !== md) return child;
 
   return <span {...attributes}>{child}</span>;
 }

@@ -108,7 +108,10 @@ export const toMatrixCustomHTML = (
         allowBlockMarkdown: false,
       })
         .replace(/<br\/>$/, '\n')
-        .replace(/^(\\*)&gt;/, '$1>');
+        .replace(
+          /^(\\*)(&gt;&gt;&gt;|&gt;)(?= |$)/,
+          (m, esc: string, gts: string) => `${esc}${'>'.repeat(gts.length / 4)}`
+        );
 
       markdownLines += line;
       if (index === targetNodes.length - 1) {

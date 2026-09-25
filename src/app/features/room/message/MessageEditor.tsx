@@ -45,6 +45,7 @@ import {
   useEditor,
   getMentions,
   replaceShortcodeWithEmoji,
+  isInOpenCodeBlock,
 } from '../../../components/editor';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
@@ -180,7 +181,11 @@ export const MessageEditor = as<'div', MessageEditorProps>(
     const handleKeyDown: KeyboardEventHandler = useCallback(
       (evt) => {
         if (
-          (isKeyHotkey('mod+enter', evt) || (!enterForNewline && isKeyHotkey('enter', evt))) &&
+          (isKeyHotkey('mod+enter', evt) ||
+            (!enterForNewline &&
+              isKeyHotkey('enter', evt) &&
+              // Like Discord: Enter inside an unclosed ``` block adds a new line.
+              !(isMarkdown && isInOpenCodeBlock(editor)))) &&
           !isComposing(evt)
         ) {
           evt.preventDefault();
@@ -191,7 +196,7 @@ export const MessageEditor = as<'div', MessageEditorProps>(
           onCancel();
         }
       },
-      [onCancel, handleSave, enterForNewline, isComposing]
+      [onCancel, handleSave, enterForNewline, isComposing, isMarkdown, editor]
     );
 
     const handleKeyUp: KeyboardEventHandler = useCallback(

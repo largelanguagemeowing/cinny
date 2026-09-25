@@ -1,6 +1,7 @@
 import { BlockMDRule } from './type';
 
-const HEADING_REG_1 = /^(#{1,6}) +(.+)\n?/m;
+// Like Discord: only # to ### are headings.
+const HEADING_REG_1 = /^(#{1,3}) +(.+)\n?/m;
 export const HeadingRule: BlockMDRule = {
   match: (text) => text.match(HEADING_REG_1),
   html: (match, parseInline) => {
@@ -10,12 +11,12 @@ export const HeadingRule: BlockMDRule = {
   },
 };
 
-// opening fence: 3 or more backticks
-// capture the exact fence length in group 1
-// optional info string in group 2
-// code content in group 3
+// Like Discord:
+// opening fence of 3 or more backticks, captured in group 1.
+// optional info string on the fence line in group 2, only when the line has no spaces.
+// code content in group 3, which may start on the fence line and end right before the closing fence.
 // closing fence must match the exact same fence sequence via \1
-const CODEBLOCK_REG_1 = /^(`{3,})(?!`)(\S*)\n((?:.*\n)+?)\1 *(?!.)\n?/m;
+const CODEBLOCK_REG_1 = /^(`{3,})(?!`)(?:([^\s`]*)\n)?([\s\S]+?)\n?\1(?!`) *\n?/m;
 export const CodeBlockRule: BlockMDRule = {
   match: (text) => text.match(CODEBLOCK_REG_1),
   html: (match) => {
@@ -25,14 +26,25 @@ export const CodeBlockRule: BlockMDRule = {
     const filename = g1 !== langCode ? g1 : null;
     const classNameAtt = langCode ? ` class="language-${langCode}"` : '';
     const filenameAtt = filename ? ` data-label="${filename}"` : '';
-    return `<pre data-md="${fence}"><code${classNameAtt}${filenameAtt}>${g2}</code></pre>`;
+    return `<pre data-md="${fence}"><code${classNameAtt}${filenameAtt}>${g2}\n</code></pre>`;
   },
 };
 
 const BLOCKQUOTE_MD_1 = '>';
-const QUOTE_LINE_PREFIX = /^> */;
+const BLOCKQUOTE_MD_2 = '>>>';
+const QUOTE_LINE_PREFIX = /^> ?/;
 const BLOCKQUOTE_TRAILING_NEWLINE = /\n$/;
-const BLOCKQUOTE_REG_1 = /(^>.*\n?)+/m;
+
+const quoteLinesToHtml = (lines: string[], parseInline?: (txt: string) => string): string =>
+  lines
+    .map((line) => {
+      if (parseInline) return `${parseInline(line)}<br/>`;
+      return `${line}<br/>`;
+    })
+    .join('');
+
+// Like Discord: a quote line needs a space after `>`, so `>_>` stays literal.
+const BLOCKQUOTE_REG_1 = /(?:^>(?: .*)?(?:\n|$))+/m;
 export const BlockQuoteRule: BlockMDRule = {
   match: (text) => text.match(BLOCKQUOTE_REG_1),
   html: (match, parseInline) => {
@@ -41,33 +53,51 @@ export const BlockQuoteRule: BlockMDRule = {
     const lines = blockquoteText
       .replace(BLOCKQUOTE_TRAILING_NEWLINE, '')
       .split('\n')
-      .map((lineText) => {
-        const line = lineText.replace(QUOTE_LINE_PREFIX, '');
-        if (parseInline) return `${parseInline(line)}<br/>`;
-        return `${line}<br/>`;
-      })
-      .join('');
-    return `<blockquote data-md="${BLOCKQUOTE_MD_1}">${lines}</blockquote>`;
+      .map((lineText) => lineText.replace(QUOTE_LINE_PREFIX, ''));
+    return `<blockquote data-md="${BLOCKQUOTE_MD_1}">${quoteLinesToHtml(
+      lines,
+      parseInline
+    )}</blockquote>`;
   },
 };
 
-const ORDERED_LIST_MD_1 = '-';
-const UNORDERED_LIST_MD_1 = '*';
-const LIST_ITEM_REG = /^( *)([-*]|[\da-zA-Z]\.) +(.+)$/;
+// Like Discord: `>>> ` quotes everything until the end of the message.
+const MULTILINE_BLOCKQUOTE_REG_1 = /^>>>(?: |\n|$)([\s\S]*)/m;
+export const MultilineBlockQuoteRule: BlockMDRule = {
+  match: (text) => text.match(MULTILINE_BLOCKQUOTE_REG_1),
+  html: (match, parseInline) => {
+    const [, content] = match;
+    const lines = content.replace(BLOCKQUOTE_TRAILING_NEWLINE, '').split('\n');
+    return `<blockquote data-md="${BLOCKQUOTE_MD_2}">${quoteLinesToHtml(
+      lines,
+      parseInline
+    )}</blockquote>`;
+  },
+};
+
+// Like Discord: `-# ` makes the line small subtext.
+const SUBTEXT_MD_1 = '-#';
+const SUBTEXT_REG_1 = /^-# +(.+)(\n?)/m;
+export const SubtextRule: BlockMDRule = {
+  match: (text) => text.match(SUBTEXT_REG_1),
+  html: (match, parseInline) => {
+    const [, g1, newline] = match;
+    const content = parseInline ? parseInline(g1) : g1;
+    return `<sub data-md="${SUBTEXT_MD_1}">${content}</sub>${newline ? '<br/>' : ''}`;
+  },
+};
+
+// Like Discord: `-` and `*` are bullet lists, `1.` is a numbered list.
+const LIST_ITEM_REG = /^( *)([-*]|\d{1,9}\.) +(.+)$/;
 type ListType = 'ol' | 'ul';
 
 function getListType(marker: string): ListType {
-  return marker === '*' ? 'ul' : 'ol';
+  return marker === '*' || marker === '-' ? 'ul' : 'ol';
 }
 
-function getOrderedMeta(marker: string) {
-  const startMatch = marker.match(/^(\d)\./);
-  const typeMatch = marker.match(/^([aAiI])\./);
-
-  return {
-    start: startMatch?.[1],
-    type: typeMatch?.[1],
-  };
+function getOrderedStart(marker: string): string | undefined {
+  const startMatch = marker.match(/^(\d+)\./);
+  return startMatch?.[1];
 }
 
 interface ParsedLine {
@@ -100,13 +130,11 @@ function parseLines(text: string): ParsedLine[] {
 
 function openList(line: ParsedLine) {
   if (line.listType === 'ul') {
-    return `<ul data-md="${UNORDERED_LIST_MD_1}">`;
+    return `<ul data-md="${line.marker}">`;
   }
-  const { type, start } = getOrderedMeta(line.marker);
-  const dataMdAtt = `data-md="${type || start || ORDERED_LIST_MD_1}"`;
-  const startAtt = start ? ` start="${start}"` : '';
-  const typeAtt = type ? ` type="${type}"` : '';
-  return `<ol ${dataMdAtt}${startAtt}${typeAtt}>`;
+  const start = String(parseInt(getOrderedStart(line.marker) ?? '1', 10));
+  const startAtt = start !== '1' ? ` start="${start}"` : '';
+  return `<ol data-md="${start}"${startAtt}>`;
 }
 
 function closeList(listType: ListType) {
@@ -181,7 +209,7 @@ function buildList(lines: ParsedLine[], parseInline?: (s: string) => string): st
   return html;
 }
 
-const LIST_REG_1 = /^(?: *(?:[-*]|[\da-zA-Z]\.) +.+\n?)+/m;
+const LIST_REG_1 = /^(?: *(?:[-*]|\d{1,9}\.) +.+\n?)+/m;
 export const ListRule: BlockMDRule = {
   match: (text) => text.match(LIST_REG_1),
   html: (match, parseInline) => {
@@ -195,5 +223,5 @@ export const ListRule: BlockMDRule = {
   },
 };
 
-export const UN_ESC_BLOCK_SEQ = /^\\*(#{1,6} +|```|>|(-|[\da-zA-Z]\.) +|\* +)/;
-export const ESC_BLOCK_SEQ = /^\\(\\*(#{1,6} +|```|>|(-|[\da-zA-Z]\.) +|\* +))/;
+export const UN_ESC_BLOCK_SEQ = /^\\*(#{1,3} +|-# +|```|>|(?:[-*]|\d{1,9}\.) +)/;
+export const ESC_BLOCK_SEQ = /^\\(\\*(?:#{1,3} +|-# +|```|>|(?:[-*]|\d{1,9}\.) +))/;

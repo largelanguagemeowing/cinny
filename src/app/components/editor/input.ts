@@ -150,6 +150,10 @@ const getInlineElement = (node: ChildNode, processText: ProcessTextCallback): In
     const inlineNode = getInlineNonMarkElement(node);
     if (inlineNode) return [inlineNode];
 
+    if (node.name === 'a' && node.attribs['data-md'] === '<') {
+      return [{ text: `<${node.attribs.href}>` }];
+    }
+
     if (node.name === 'a') {
       const children = node.childNodes.flatMap((child) => getInlineElement(child, processText));
       children.unshift({ text: '[' });
@@ -204,9 +208,12 @@ const parseBlockquoteNode = (
 
   const mdSequence = node.attribs['data-md'];
   if (mdSequence !== undefined) {
-    return quoteLines.map((lineChildren) => ({
+    // `>>>` quotes everything after it, so only the first line carries it.
+    const multiline = mdSequence === '>>>';
+    return quoteLines.map((lineChildren, index) => ({
       type: BlockType.Paragraph,
-      children: [{ text: `${mdSequence} ` }, ...lineChildren],
+      children:
+        multiline && index > 0 ? lineChildren : [{ text: `${mdSequence} ` }, ...lineChildren],
     }));
   }
 
@@ -264,7 +271,7 @@ const parseListMarkdown = (
   const md = isTag(node) && node.name === 'ul' ? '*' : '-';
   const prefix = node.attribs['data-md'] ?? md;
   const [starOrHyphen] = prefix.match(/^\*|-$/) ?? [];
-  const [digitOrChar] = prefix.match(/^[\da-zA-Z]/) ?? [];
+  const [digitOrChar] = prefix.match(/^\d+|^[a-zA-Z]/) ?? [];
 
   const digit = digitOrChar ? parseInt(digitOrChar, 10) : undefined;
 
@@ -468,6 +475,14 @@ export const domToEditorInput = (
       if (node.name === 'ol' || node.name === 'ul') {
         appendLine();
         children.push(...parseListNode(node, processText));
+        return;
+      }
+
+      if (node.name === 'sub' && node.attribs['data-md'] !== undefined) {
+        lineHolder.push(
+          { text: `${node.attribs['data-md']} ` },
+          ...getInlineElement(node, processText)
+        );
         return;
       }
 

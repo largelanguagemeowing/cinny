@@ -20,6 +20,18 @@ export type FormattedText = Text & {
   spoiler?: boolean;
 };
 
+// Decorations that highlight markdown syntax while typing.
+export type MarkdownDecoratedText = {
+  mdBold?: boolean;
+  mdItalic?: boolean;
+  mdUnderline?: boolean;
+  mdStrikeThrough?: boolean;
+  mdCode?: boolean;
+  mdSpoiler?: boolean;
+  mdLink?: boolean;
+  mdSyntax?: boolean;
+};
+
 export type LinkElement = {
   type: BlockType.Link;
   href: string;
@@ -106,6 +118,6 @@ declare module 'slate' {
   interface CustomTypes {
     Editor: Editor;
     Element: CustomElement;
-    Text: FormattedText & Text;
+    Text: FormattedText & MarkdownDecoratedText & Text;
   }
 }

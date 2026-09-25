@@ -375,6 +375,14 @@ export const getReactCustomHtmlParser = (
           );
         }
 
+        if (name === 'sub' && 'data-md' in attribs) {
+          return (
+            <Text {...props} as="span" size="T200" priority="300">
+              {domToReact(children, opts)}
+            </Text>
+          );
+        }
+
         if (name === 'p') {
           return (
             <Text {...props} className={classNames(css.Paragraph, css.MarginSpaced)} size="Inherit">

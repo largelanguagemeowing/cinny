@@ -57,6 +57,7 @@ import {
   trimCommand,
   getMentions,
   replaceShortcodeWithEmoji,
+  isInOpenCodeBlock,
 } from '../../components/editor';
 import { EmojiBoard, EmojiBoardTab } from '../../components/emoji-board';
 import { getGifToSend, isGifVideo } from '../../utils/klipy';
@@ -448,7 +449,11 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
     const handleKeyDown: KeyboardEventHandler = useCallback(
       (evt) => {
         if (
-          (isKeyHotkey('mod+enter', evt) || (!enterForNewline && isKeyHotkey('enter', evt))) &&
+          (isKeyHotkey('mod+enter', evt) ||
+            (!enterForNewline &&
+              isKeyHotkey('enter', evt) &&
+              // Like Discord: Enter inside an unclosed ``` block adds a new line.
+              !(isMarkdown && isInOpenCodeBlock(editor)))) &&
           !isComposing(evt)
         ) {
           evt.preventDefault();
@@ -463,7 +468,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           setReplyDraft(undefined);
         }
       },
-      [submit, setReplyDraft, enterForNewline, autocompleteQuery, isComposing]
+      [submit, setReplyDraft, enterForNewline, autocompleteQuery, isComposing, isMarkdown, editor]
     );
 
     const handleKeyUp: KeyboardEventHandler = useCallback(

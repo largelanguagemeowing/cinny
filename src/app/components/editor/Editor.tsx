@@ -2,13 +2,15 @@
 import React, {
   ClipboardEventHandler,
   KeyboardEventHandler,
+  useMemo,
   ReactNode,
   forwardRef,
   useCallback,
   useState,
 } from 'react';
 import { Box, Scroll, Text } from 'folds';
-import { Descendant, Editor, createEditor } from 'slate';
+import { isKeyHotkey } from 'is-hotkey';
+import { Descendant, Editor, NodeEntry, createEditor } from 'slate';
 import {
   Slate,
   Editable,
@@ -23,6 +25,9 @@ import { RenderElement, RenderLeaf } from './Elements';
 import { CustomElement } from './slate';
 import * as css from './Editor.css';
 import { toggleKeyboardShortcut } from './keyboard';
+import { continueMarkdownList, decorateMarkdown, pasteMarkdownLink } from './markdown';
+import { useSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
 
 const initialValue: CustomElement[] = [
   {
@@ -90,20 +95,48 @@ export const CustomEditor = forwardRef<HTMLDivElement, CustomEditorProps>(
     },
     ref
   ) => {
+    const [isMarkdown] = useSetting(settingsAtom, 'isMarkdown');
+    const [enterForNewline] = useSetting(settingsAtom, 'enterForNewline');
+
     const renderElement = useCallback(
-      (props: RenderElementProps) => <RenderElement {...props} />,
-      []
+      (props: RenderElementProps) => <RenderElement {...props} markdown={isMarkdown} />,
+      [isMarkdown]
     );
 
     const renderLeaf = useCallback((props: RenderLeafProps) => <RenderLeaf {...props} />, []);
 
+    const decorate = useMemo(
+      () => (isMarkdown ? (entry: NodeEntry) => decorateMarkdown(editor, entry) : undefined),
+      [editor, isMarkdown]
+    );
+
     const handleKeydown: KeyboardEventHandler = useCallback(
       (evt) => {
         onKeyDown?.(evt);
-        const shortcutToggled = toggleKeyboardShortcut(editor, evt);
+        if (
+          isMarkdown &&
+          !evt.defaultPrevented &&
+          (isKeyHotkey('shift+enter', evt) || (enterForNewline && isKeyHotkey('enter', evt))) &&
+          continueMarkdownList(editor)
+        ) {
+          evt.preventDefault();
+          return;
+        }
+        const shortcutToggled = toggleKeyboardShortcut(editor, evt, isMarkdown);
         if (shortcutToggled) evt.preventDefault();
       },
-      [editor, onKeyDown]
+      [editor, onKeyDown, isMarkdown, enterForNewline]
+    );
+
+    const handlePaste: ClipboardEventHandler = useCallback(
+      (evt) => {
+        onPaste?.(evt);
+        if (evt.defaultPrevented || !isMarkdown) return;
+        if (pasteMarkdownLink(editor, evt.clipboardData.getData('text/plain'))) {
+          evt.preventDefault();
+        }
+      },
+      [editor, onPaste, isMarkdown]
     );
 
     const renderPlaceholder = useCallback(
@@ -143,9 +176,10 @@ export const CustomEditor = forwardRef<HTMLDivElement, CustomEditorProps>(
                 renderPlaceholder={renderPlaceholder}
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
+                decorate={decorate}
                 onKeyDown={handleKeydown}
                 onKeyUp={onKeyUp}
-                onPaste={onPaste}
+                onPaste={handlePaste}
               />
             </Scroll>
             {after && (
