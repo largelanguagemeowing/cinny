@@ -2,16 +2,17 @@ import { style } from '@vanilla-extract/css';
 import { DefaultReset, config } from 'folds';
 
 // Full-screen, Discord-style image viewer. No modal card: the viewer itself
-// is the dark surface, the image floats centred on it, and the controls live
-// in a floating header bar at the top. Clicking the dark area around the
-// image closes the viewer (handled in ImageViewer.tsx).
+// is the dark surface, the controls live in a header bar at the top and the
+// image is centred in the remaining space below it. Clicking the dark area
+// around the image closes the viewer (handled in ImageViewer.tsx).
 export const ImageViewer = style([
   DefaultReset,
   {
     width: '100%',
     height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
     overflow: 'hidden',
   },
 ]);
@@ -19,10 +20,7 @@ export const ImageViewer = style([
 export const ImageViewerHeader = style([
   DefaultReset,
   {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    position: 'relative',
     zIndex: 2,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     backdropFilter: 'blur(8px)',
@@ -36,8 +34,11 @@ export const ImageViewerHeader = style([
 export const ImageViewerContent = style([
   DefaultReset,
   {
+    // Fill the space below the header; minHeight 0 lets the image's
+    // maxHeight: 100% resolve against this box instead of overflowing it.
+    flex: '1 1 0',
+    minHeight: 0,
     width: '100%',
-    height: '100%',
     overflow: 'hidden',
   },
 ]);

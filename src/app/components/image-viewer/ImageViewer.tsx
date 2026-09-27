@@ -16,9 +16,13 @@ export type ImageViewerProps = {
   requestClose: () => void;
 };
 
-// Clicking the image or the floating header should not close the viewer (only
+// Clicking the image or the header should not close the viewer (only
 // the dark area around the image does). Stop the event from bubbling to the
 // root's onClick={requestClose}.
+// The root also uses it for onContextMenu: React events bubble through
+// portals along the component tree, so a right-click inside the viewer would
+// otherwise reach the owning message and open its context menu (a second
+// focus trap) behind the viewer, leaving the page unresponsive.
 const stopMousePropagation = (e: React.MouseEvent) => {
   e.stopPropagation();
 };
@@ -42,7 +46,11 @@ export const ImageViewer = as<'div', ImageViewerProps>(
       <Box
         className={classNames(css.ImageViewer, className)}
         direction="Column"
-        onClick={requestClose}
+        onClick={(e: React.MouseEvent) => {
+          e.stopPropagation();
+          requestClose();
+        }}
+        onContextMenu={stopMousePropagation}
         {...props}
         ref={ref}
       >

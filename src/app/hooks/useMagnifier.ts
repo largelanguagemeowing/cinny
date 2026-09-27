@@ -87,6 +87,12 @@ export const useMagnifier = (
 
     const onMouseMove = (e: MouseEvent) => {
       if (!downRef.current) return;
+      // Primary button no longer held: the mouseup was lost somewhere.
+      if (e.buttons % 2 === 0) {
+        downRef.current = false;
+        setVisible(false);
+        return;
+      }
       update(e.clientX, e.clientY);
     };
 
@@ -111,6 +117,14 @@ export const useMagnifier = (
       setVisible(false);
     };
 
+    // A mouseup can be lost (alt-tab, release over an iframe or outside the
+    // window). Without this the lens stays stuck and every wheel event on
+    // the page keeps getting swallowed.
+    const onBlur = () => {
+      onMouseUp();
+      shiftRef.current = false;
+    };
+
     const onWheel = (e: WheelEvent) => {
       if (!downRef.current) return;
       e.preventDefault();
@@ -132,14 +146,17 @@ export const useMagnifier = (
     document.addEventListener('keyup', onKeyUp);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('blur', onBlur);
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('wheel', onWheel, { passive: false });
 
     return () => {
+      downRef.current = false;
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('blur', onBlur);
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('wheel', onWheel);
     };
