@@ -810,6 +810,11 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
             >
               <IconButton
                 onClick={(evt) => setAttachMenuAnchor(evt.currentTarget.getBoundingClientRect())}
+                // Shortcut: double click skips the menu and opens the file picker.
+                onDoubleClick={() => {
+                  setAttachMenuAnchor(undefined);
+                  pickFile('*');
+                }}
                 aria-pressed={!!attachMenuAnchor}
                 variant="SurfaceVariant"
                 size="300"
