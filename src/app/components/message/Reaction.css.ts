@@ -73,3 +73,10 @@ export const ReactionImg = style([
     objectFit: 'contain',
   },
 ]);
+
+// truncate sets overflow: hidden, which clips emoji glyphs (e.g. Twemoji) taller
+// than the line box. Extend the clip box vertically without affecting layout.
+export const ReactionTextTruncate = style({
+  paddingBlock: toRem(4),
+  marginBlock: toRem(-4),
+});

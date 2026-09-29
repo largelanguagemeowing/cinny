@@ -34,7 +34,7 @@ export const Reaction = as<
           alt={reaction}
         />
       ) : (
-        <Text as="span" size="Inherit" truncate>
+        <Text className={css.ReactionTextTruncate} as="span" size="Inherit" truncate>
           {reaction}
         </Text>
       )}
