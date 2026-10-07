@@ -19,6 +19,7 @@ import {
 } from 'matrix-js-sdk';
 import { CryptoBackend } from 'matrix-js-sdk/lib/common-crypto/CryptoBackend';
 import { AccountDataEvent } from '../../types/matrix/accountData';
+import { MATRIX_GIF_PROPERTY_NAME } from '../../types/matrix/common';
 import {
   IRoomCreateContent,
   Membership,
@@ -375,7 +376,7 @@ export const getEventBodyForNotification = (mEvent: MatrixEvent): string => {
     case MsgType.Image:
       return 'Sent an image';
     case MsgType.Video:
-      return 'Sent a video';
+      return content[MATRIX_GIF_PROPERTY_NAME] === true ? 'Sent a GIF' : 'Sent a video';
     case MsgType.Audio:
       return 'Sent an audio message';
     case MsgType.File:
