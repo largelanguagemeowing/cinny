@@ -56,6 +56,7 @@ import {
 import { ProfilePreview } from './ProfilePreview';
 import * as previewCss from './ProfilePreview.css';
 import { useUserPresence } from '../../../hooks/useUserPresence';
+import { isAnimatedImage } from '../../../utils/animatedImage';
 
 type ProfileProps = {
   profile: UserProfile;
@@ -237,7 +238,16 @@ function ProfileBanner({ bannerMxc, onBannerChange }: ProfileBannerProps) {
     () => (croppedFile ? createUploadAtom(croppedFile) : undefined),
     [croppedFile]
   );
-  const pickFile = useFilePicker(setImageFile, false);
+  const handlePickedFile = useCallback(async (file: File) => {
+    // The cropper re-encodes to a single static frame, so animated banners are
+    // uploaded untouched and are expected to already be cropped to 3:1.
+    if (await isAnimatedImage(file)) {
+      setCroppedFile(file);
+      return;
+    }
+    setImageFile(file);
+  }, []);
+  const pickFile = useFilePicker(handlePickedFile, false);
 
   const handleUploaded = useCallback(
     async (upload: UploadSuccess) => {
