@@ -70,7 +70,7 @@ const defaultSettings: Settings = {
   lowAnimationMode: false,
   isMarkdown: true,
   editorToolbar: false,
-  twitterEmoji: false,
+  twitterEmoji: true,
   pageZoom: 100,
   hideActivity: false,
 
