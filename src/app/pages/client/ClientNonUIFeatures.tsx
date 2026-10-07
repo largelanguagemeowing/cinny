@@ -115,8 +115,12 @@ function InviteNotifications() {
         silent: true,
       });
 
-      noti.onclick = () => {
-        if (!window.closed) navigate(getInboxInvitesPath());
+      noti.onclick = (event) => {
+        event.preventDefault();
+        if (!window.closed) {
+          window.focus();
+          navigate(getInboxInvitesPath());
+        }
         noti.close();
       };
     },
@@ -186,8 +190,12 @@ function MessageNotifications() {
         silent: true,
       });
 
-      noti.onclick = () => {
-        if (!window.closed) navigateRoom(roomId, eventId);
+      noti.onclick = (event) => {
+        event.preventDefault();
+        if (!window.closed) {
+          window.focus();
+          navigateRoom(roomId, eventId);
+        }
         noti.close();
       };
     },
