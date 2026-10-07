@@ -34,6 +34,16 @@ linux:
   description: Desktop build of the Cinny Matrix client.
   maintainer: largelanguagemeowing <noreply@mreow.de>
 
+win:
+  target:
+    - nsis
+  icon: electron/build/icon.png
+
+nsis:
+  oneClick: true
+  perMachine: false
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+
 appImage:
   artifactName: ${productName}-${version}-${arch}.${ext}
 
