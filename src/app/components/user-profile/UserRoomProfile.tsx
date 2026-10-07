@@ -1,4 +1,4 @@
-import { Box, config, Text } from 'folds';
+import { Box, config } from 'folds';
 import React from 'react';
 import { UserHero, UserHeroName } from './UserHero';
 import { mxcUrlToHttp } from '../../utils/matrix';
@@ -21,6 +21,7 @@ import { CreatorChip } from './CreatorChip';
 import { useUserRichPresence } from '../../hooks/useUserRichPresence';
 import { UserRichPresence } from './UserRichPresence';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { UserBiography } from './UserBiography';
 import {
   getProfileBanner,
   getProfileBiography,
@@ -117,11 +118,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
             )}
           </Box>
         </Box>
-        {biography && (
-          <Text style={{ whiteSpace: 'pre-wrap' }} priority="300">
-            {biography}
-          </Text>
-        )}
+        {biography && <UserBiography biography={biography} />}
         {richPresence && <UserRichPresence presence={richPresence} />}
         {ignored && <IgnoredUserAlert />}
         {member && membership === Membership.Ban && (

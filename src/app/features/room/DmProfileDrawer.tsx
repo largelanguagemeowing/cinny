@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Scroll, Text, config } from 'folds';
+import { Box, Scroll, config } from 'folds';
 import { Room } from 'matrix-js-sdk';
 import { ContainerColor } from '../../styles/ContainerColor.css';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
@@ -10,6 +10,7 @@ import { useUserProfile } from '../../hooks/useUserProfile';
 import { useIgnoredUsers } from '../../hooks/useIgnoredUsers';
 import { getMemberAvatarMxc, getMemberDisplayName } from '../../utils/room';
 import { guessDmRoomUserId, mxcUrlToHttp } from '../../utils/matrix';
+import { UserBiography } from '../../components/user-profile/UserBiography';
 import {
   getProfileBanner,
   getProfileBiography,
@@ -77,11 +78,7 @@ export function DmProfileDrawer({ room }: DmProfileDrawerProps) {
                 <UserHeroName displayName={displayName} userId={userId} pronouns={pronouns} />
                 {userId !== myUserId && <MutualRoomsChip userId={userId} />}
               </Box>
-              {biography && (
-                <Text style={{ whiteSpace: 'pre-wrap' }} priority="300">
-                  {biography}
-                </Text>
-              )}
+              {biography && <UserBiography biography={biography} />}
               {richPresence && <UserRichPresence presence={richPresence} />}
               {ignored && <IgnoredUserAlert />}
             </Box>
