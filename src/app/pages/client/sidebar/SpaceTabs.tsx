@@ -471,6 +471,7 @@ function SpaceTab({
       {(unread) => (
         <SidebarItem
           active={selected}
+          unread={!!unread && unread.total > 0 && unread.highlight === 0}
           ref={targetRef}
           aria-disabled={disabled}
           data-drop-child={dropType === 'make-child'}
@@ -499,9 +500,9 @@ function SpaceTab({
               </SidebarAvatar>
             )}
           </SidebarItemTooltip>
-          {unread && (
-            <SidebarItemBadge hasCount={unread.total > 0}>
-              <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
+          {unread && unread.highlight > 0 && (
+            <SidebarItemBadge hasCount placement="bottomRight">
+              <UnreadBadge highlight count={unread.highlight} />
             </SidebarItemBadge>
           )}
           {hasCall && (
