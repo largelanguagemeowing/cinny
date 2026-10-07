@@ -1,4 +1,4 @@
-import { as, Box, Text } from 'folds';
+import { as, Box, Icon, IconSrc, Icons, Text } from 'folds';
 import React, { ReactNode } from 'react';
 import classNames from 'classnames';
 import * as css from './styles.css';
@@ -10,9 +10,12 @@ export const EmojiGroup = as<
   {
     id: string;
     label: string;
+    icon?: IconSrc;
+    collapsed?: boolean;
+    onToggleCollapsed?: (id: string) => void;
     children: ReactNode;
   }
->(({ className, id, label, children, ...props }, ref) => (
+>(({ className, id, label, icon, collapsed, onToggleCollapsed, children, ...props }, ref) => (
   <Box
     id={getDOMGroupId(id)}
     data-group-id={id}
@@ -22,13 +25,30 @@ export const EmojiGroup = as<
     {...props}
     ref={ref}
   >
-    <Text id={`EmojiGroup-${id}-label`} as="label" className={css.EmojiGroupLabel} size="O400">
-      {label}
+    <Text
+      id={`EmojiGroup-${id}-label`}
+      as="button"
+      type="button"
+      aria-expanded={!collapsed}
+      aria-controls={`EmojiGroup-${id}-content`}
+      className={css.EmojiGroupLabel}
+      size="O400"
+      onClick={() => onToggleCollapsed?.(id)}
+    >
+      {icon && <Icon size="100" src={icon} />}
+      <span>{label}</span>
+      <Icon size="100" src={collapsed ? Icons.ChevronRight : Icons.ChevronBottom} />
     </Text>
-    <div aria-labelledby={`EmojiGroup-${id}-label`} className={css.EmojiGroupContent}>
-      <Box wrap="Wrap" justifyContent="Center">
-        {children}
-      </Box>
-    </div>
+    {!collapsed && (
+      <div
+        id={`EmojiGroup-${id}-content`}
+        aria-labelledby={`EmojiGroup-${id}-label`}
+        className={css.EmojiGroupContent}
+      >
+        <Box wrap="Wrap" justifyContent="Center">
+          {children}
+        </Box>
+      </div>
+    )}
   </Box>
 ));

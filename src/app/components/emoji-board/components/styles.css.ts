@@ -94,17 +94,26 @@ export const EmojiGroup = style({
   padding: `${config.space.S300} 0`,
 });
 
-export const EmojiGroupLabel = style({
-  position: 'sticky',
-  top: config.space.S200,
-  zIndex: 1,
+export const EmojiGroupLabel = style([
+  DefaultReset,
+  FocusOutline,
+  {
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
 
-  margin: 'auto',
-  padding: `${config.space.S100} ${config.space.S200}`,
-  borderRadius: config.radii.Pill,
-  backgroundColor: color.SurfaceVariant.Container,
-  color: color.SurfaceVariant.OnContainer,
-});
+    display: 'flex',
+    alignItems: 'center',
+    gap: config.space.S100,
+    width: '100%',
+    margin: 0,
+    padding: `${config.space.S100} ${config.space.S200}`,
+    backgroundColor: color.Surface.Container,
+    color: color.Surface.OnContainer,
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+]);
 
 export const EmojiGroupContent = style([
   DefaultReset,

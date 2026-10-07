@@ -8,6 +8,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import { Box, config, Icons, Scroll } from 'folds';
 import FocusTrap from 'focus-trap-react';
@@ -15,7 +16,7 @@ import { isKeyHotkey } from 'is-hotkey';
 import { Room } from 'matrix-js-sdk';
 import { atom, PrimitiveAtom, useAtom, useSetAtom } from 'jotai';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { IEmoji, emojiGroups, emojis } from '../../plugins/emoji';
+import { EmojiGroupId, IEmoji, emojiGroups, emojis } from '../../plugins/emoji';
 import { useEmojiGroupLabels } from './useEmojiGroupLabels';
 import { useEmojiGroupIcons } from './useEmojiGroupIcons';
 import { preventScrollWithArrowKey, stopPropagation } from '../../utils/keyboard';
@@ -84,7 +85,7 @@ const useGroups = (
 
     g.push({
       id: RECENT_GROUP_ID,
-      name: 'Recent',
+      name: 'Frequently Used',
       items: recentEmojis,
     });
 
@@ -394,6 +395,16 @@ export function EmojiBoard({
   const setActiveGroupId = useSetAtom(activeGroupIdAtom);
   const imagePacks = useRelevantImagePacks(usage, imagePackRooms);
   const [emojiGroupItems, stickerGroupItems] = useGroups(tab, imagePacks);
+  const emojiGroupIcons = useEmojiGroupIcons();
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(() => new Set());
+  const handleToggleGroupCollapsed = useCallback((groupId: string) => {
+    setCollapsedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
   const groups = emojiTab ? emojiGroupItems : stickerGroupItems;
   const renderItem = useItemRenderer(tab);
 
@@ -559,6 +570,8 @@ export function EmojiBoard({
                 <EmojiGroup
                   id={SEARCH_GROUP_ID}
                   label={searchedItems.length ? 'Search Results' : 'No Results found'}
+                  collapsed={collapsedGroupIds.has(SEARCH_GROUP_ID)}
+                  onToggleCollapsed={handleToggleGroupCollapsed}
                 >
                   {searchedItems.map(renderItem)}
                 </EmojiGroup>
@@ -580,7 +593,18 @@ export function EmojiBoard({
                       ref={virtualizer.measureElement}
                       key={vItem.index}
                     >
-                      <EmojiGroup key={group.id} id={group.id} label={group.name}>
+                      <EmojiGroup
+                        key={group.id}
+                        id={group.id}
+                        label={group.name}
+                        icon={
+                          group.id === RECENT_GROUP_ID
+                            ? Icons.Clock
+                            : emojiGroupIcons[group.id as EmojiGroupId]
+                        }
+                        collapsed={collapsedGroupIds.has(group.id)}
+                        onToggleCollapsed={handleToggleGroupCollapsed}
+                      >
                         {group.items.map(renderItem)}
                       </EmojiGroup>
                     </VirtualTile>
