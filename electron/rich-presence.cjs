@@ -6,11 +6,10 @@
 // (https://github.com/OpenAsar/arRPC): framed `[int32 LE op][int32 LE len][json]`,
 // with HANDSHAKE -> READY, SET_ACTIVITY -> activity, PING -> PONG.
 //
-// We bind the first free discord-ipc-{n} socket (n = 0..9), probing by
-// *connecting* (not listening) so we never clobber a Discord instance already
-// owning a lower slot: we only receive clients while holding the lowest slot,
-// i.e. when Discord itself is not running. Mutually exclusive in practice,
-// non-destructive always.
+// We bind the first free discord-ipc-{n} socket, probing by *connecting* (not
+// listening) so we never clobber a live server. Slot 0 is preferred; if it is
+// taken we start at 2, because Discord itself binds 0 and 1, so slot 1 is never
+// tried. Mutually exclusive with Discord in practice, non-destructive always.
 const { join } = require('path');
 const { platform, env } = require('process');
 const { unlinkSync } = require('fs');
@@ -163,8 +162,12 @@ const probeAvailable = (path) =>
     setTimeout(() => settle(false), 750);
   });
 
-const findFreePath = async (maxTries = 10) => {
-  for (let n = 0; n < maxTries; n += 1) {
+// Slot 0, then 2..9. Slot 1 is skipped because Discord binds 0 and 1.
+const SLOT_ORDER = [0, 2, 3, 4, 5, 6, 7, 8, 9];
+
+const findFreePath = async () => {
+  for (let i = 0; i < SLOT_ORDER.length; i += 1) {
+    const n = SLOT_ORDER[i];
     const path = `${SOCKET_BASE}-${n}`;
     const available = await probeAvailable(path);
     log(`probe discord-ipc-${n} ${available ? 'free' : 'in use'}`);
@@ -286,10 +289,10 @@ const createRichPresenceServer = ({ onActivity }) => {
       log(`start: already listening on ${bound?.path} (slot ${bound?.index})`);
       return { ok: true, path: bound?.path, index: bound?.index };
     }
-    const found = await findFreePath(10);
+    const found = await findFreePath();
     if (!found) {
-      log('start: no free discord-ipc slot (0-9 all in use)');
-      return { ok: false, error: 'All discord-ipc sockets (0-9) are in use' };
+      log('start: no free discord-ipc slot (0, 2-9 all in use)');
+      return { ok: false, error: 'All discord-ipc sockets (0, 2-9) are in use' };
     }
     server = createServer(handleConnection);
     server.on('error', (err) => {
