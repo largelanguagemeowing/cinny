@@ -38,6 +38,21 @@ linux:
   description: Desktop build of the Pinniped Matrix client.
   maintainer: largelanguagemeowing <noreply@mreow.de>
 
+mac:
+  target:
+    - dmg
+  category: public.app-category.social-networking
+  icon: electron/build/icon.png
+  # unsigned local build; macOS kills apps that request camera/mic access
+  # without these usage strings
+  identity: null
+  extendInfo:
+    NSCameraUsageDescription: Pinniped needs camera access for video calls.
+    NSMicrophoneUsageDescription: Pinniped needs microphone access for calls.
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
 win:
   target:
     - nsis

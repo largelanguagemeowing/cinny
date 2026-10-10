@@ -26,7 +26,8 @@
     "bump": "node scripts/update-version.js",
     "electron:start": "electron electron/main.cjs",
     "electron:dist": "npm run build && electron-builder --config electron/electron-builder.yml --linux",
-    "electron:dist:win": "npm run build && electron-builder --config electron/electron-builder.yml --win"
+    "electron:dist:win": "npm run build && electron-builder --config electron/electron-builder.yml --win",
+    "electron:dist:mac": "npm run build && electron-builder --config electron/electron-builder.yml --mac"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": "eslint",
