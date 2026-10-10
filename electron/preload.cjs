@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('cinnyDesktop', {
   },
   // MSC4320 rich-presence publisher: the main process impersonates Discord's
   // local RPC pipe and forwards activity here for the renderer to publish.
+  showWindow: () => ipcRenderer.send('window:show'),
   setBadgeCount: (count, overlay) => ipcRenderer.send('badge:set', { count, overlay }),
   supportsRichPresenceBridge: true,
   startRichPresenceBridge: () => ipcRenderer.invoke('rich-presence:start'),

@@ -7,6 +7,7 @@ const {
   desktopCapturer,
   ipcMain,
   nativeImage,
+  Tray,
 } = require('electron');
 const path = require('path');
 const { registerAppScheme, registerAppHandler, APP_ORIGIN } = require('./app-protocol.cjs');
@@ -18,6 +19,17 @@ const DIST_DIR = path.join(__dirname, '..', 'dist');
 const APP_ICON = path.join(__dirname, 'build', 'icon.png');
 
 let mainWindow = null;
+let tray = null;
+let isQuitting = false;
+
+// Windows keeps running in the tray when the window is closed, like Discord,
+// so notifications and sounds still arrive. Quit from the tray menu.
+const CLOSE_TO_TRAY = process.platform === 'win32';
+
+// Windows toasts are attributed to the AppUserModelID; it has to match the one
+// electron-builder writes into the Start menu shortcut (the appId), otherwise
+// toasts show under the wrong name or are dropped.
+if (process.platform === 'win32') app.setAppUserModelId('de.mreow.cinny');
 
 // MSC4320 rich-presence publisher: impersonates Discord's local RPC pipe and
 // forwards captured activity to the renderer to publish as the user's profile
@@ -108,6 +120,8 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: true,
+      // keep sync and notification timers running while hidden in the tray
+      backgroundThrottling: false,
     },
   });
 
@@ -145,6 +159,13 @@ function createWindow() {
     }
   });
 
+  mainWindow.on('close', (event) => {
+    if (CLOSE_TO_TRAY && tray && !isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -152,22 +173,51 @@ function createWindow() {
   mainWindow.loadURL(`${APP_ORIGIN}/`);
 }
 
+const showMainWindow = () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+};
+
+function createTray() {
+  tray = new Tray(nativeImage.createFromPath(APP_ICON).resize({ width: 16, height: 16 }));
+  tray.setToolTip('Pinniped');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Open Pinniped', click: showMainWindow },
+      { type: 'separator' },
+      {
+        label: 'Quit Pinniped',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ])
+  );
+  tray.on('click', showMainWindow);
+}
+
+// Clicking a notification while the window sits hidden in the tray: the
+// renderer's window.focus() cannot unhide it, so the main process does.
+ipcMain.on('window:show', showMainWindow);
+
 // single instance; focus existing window on second launch
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
+  app.on('second-instance', showMainWindow);
 
   app.whenReady().then(() => {
     Menu.setApplicationMenu(buildAppMenu());
     registerAppHandler(DIST_DIR);
     enableScreenShare();
     createWindow();
+    if (CLOSE_TO_TRAY) createTray();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -179,6 +229,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('before-quit', () => {
+    isQuitting = true;
     rpServer?.stop();
   });
 }

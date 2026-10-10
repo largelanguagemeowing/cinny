@@ -214,6 +214,7 @@ function MessageNotifications() {
       noti.onclick = (event) => {
         event.preventDefault();
         if (!window.closed) {
+          window.cinnyDesktop?.showWindow?.();
           window.focus();
           navigateRoom(roomId, eventId);
         }
