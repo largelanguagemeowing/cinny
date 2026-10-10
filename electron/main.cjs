@@ -97,7 +97,7 @@ function createWindow() {
     minHeight: 400,
     backgroundColor: '#15171e',
     autoHideMenuBar: true,
-    title: 'Cinny',
+    title: 'Pinniped',
     // Linux taskbars read the window icon from here; without it Electron's
     // generic icon is shown instead of the desktop entry's icon.
     icon: APP_ICON,

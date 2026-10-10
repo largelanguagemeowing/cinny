@@ -1,8 +1,8 @@
 {
-  "name": "cinny",
+  "name": "pinniped",
   "version": "4.12.6",
   "description": "Yet another matrix client",
-  "desktopName": "de.mreow.cinny.desktop",
+  "desktopName": "pinniped.desktop",
   "main": "index.js",
   "type": "module",
   "engines": {

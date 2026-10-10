@@ -1,6 +1,6 @@
 appId: de.mreow.cinny
-productName: Cinny
-copyright: Cinny contributors (AGPL-3.0-only)
+productName: Pinniped
+copyright: Pinniped contributors (AGPL-3.0-only)
 
 directories:
   output: electron/out
@@ -35,7 +35,7 @@ linux:
   category: Network
   icon: electron/build/icon.png
   synopsis: Yet another Matrix client
-  description: Desktop build of the Cinny Matrix client.
+  description: Desktop build of the Pinniped Matrix client.
   maintainer: largelanguagemeowing <noreply@mreow.de>
 
 win:
