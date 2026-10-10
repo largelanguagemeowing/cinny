@@ -29,7 +29,7 @@ const CLOSE_TO_TRAY = process.platform === 'win32';
 // Windows toasts are attributed to the AppUserModelID; it has to match the one
 // electron-builder writes into the Start menu shortcut (the appId), otherwise
 // toasts show under the wrong name or are dropped.
-if (process.platform === 'win32') app.setAppUserModelId('de.mreow.cinny');
+if (process.platform === 'win32') app.setAppUserModelId('de.mreow.pinniped');
 
 // MSC4320 rich-presence publisher: impersonates Discord's local RPC pipe and
 // forwards captured activity to the renderer to publish as the user's profile

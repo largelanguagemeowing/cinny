@@ -1,4 +1,4 @@
-appId: de.mreow.cinny
+appId: de.mreow.pinniped
 productName: Pinniped
 copyright: Pinniped contributors (AGPL-3.0-only)
 
@@ -26,7 +26,7 @@ extraMetadata:
 npmRebuild: false
 
 linux:
-  # ties the running window (WM_CLASS / app id) to de.mreow.cinny.desktop so
+  # ties the running window (WM_CLASS / app id) to pinniped.desktop so
   # taskbars show this icon instead of a generic one
   syncDesktopName: true
   target:

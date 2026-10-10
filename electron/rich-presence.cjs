@@ -15,7 +15,7 @@ const { platform, env } = require('process');
 const { unlinkSync } = require('fs');
 const { createServer, createConnection } = require('net');
 
-const log = (...args) => console.log('[cinny:rpc]', ...args);
+const log = (...args) => console.log('[pinniped:rpc]', ...args);
 
 const OP = { HANDSHAKE: 0, FRAME: 1, CLOSE: 2, PING: 3, PONG: 4 };
 const OP_NAME = ['HANDSHAKE', 'FRAME', 'CLOSE', 'PING', 'PONG'];
@@ -44,9 +44,9 @@ const READY = {
     },
     user: {
       id: '1045800378228281345',
-      username: 'cinny',
+      username: 'pinniped',
       discriminator: '0',
-      global_name: 'Cinny',
+      global_name: 'Pinniped',
       avatar: null,
       avatar_decoration_data: null,
       bot: false,
