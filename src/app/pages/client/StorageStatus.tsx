@@ -17,8 +17,8 @@ export function StorageStatus() {
         justifyContent="Center"
       >
         <Text size="L400" align="Center">
-          Local storage failed. Free disk space, then reload Cinny. Do not send messages until this
-          is fixed.
+          Local storage failed. Free disk space, then reload Pinniped. Do not send messages until
+          this is fixed.
         </Text>
       </Box>
       <Line variant="Critical" size="300" />

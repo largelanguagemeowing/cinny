@@ -39,7 +39,7 @@ export function RichPresencePublish() {
             <Text size="T200" priority="300">
               {desktop
                 ? "Impersonate Discord's local RPC server so media players and games broadcast their activity as your Matrix rich presence (MSC4320). Off by default for privacy; requires MSC4133 extended profiles on your homeserver."
-                : 'Available in the Cinny desktop app. The web build cannot listen on the Discord RPC pipe.'}
+                : 'Available in the Pinniped desktop app. The web build cannot listen on the Discord RPC pipe.'}
             </Text>
             {statusText && (
               <Text size="T200" priority="300">

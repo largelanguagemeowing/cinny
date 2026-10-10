@@ -41,4 +41,5 @@ declare global {
 export const isDesktop = (): boolean => typeof window.cinnyDesktop !== 'undefined';
 
 // Matrix device display name shown in the account's sessions list
-export const getDeviceDisplayName = (): string => (isDesktop() ? 'Cinny Desktop' : 'Cinny Web');
+export const getDeviceDisplayName = (): string =>
+  isDesktop() ? 'Pinniped Desktop' : 'Pinniped Web';
