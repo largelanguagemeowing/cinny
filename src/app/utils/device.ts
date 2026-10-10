@@ -27,6 +27,7 @@ declare global {
     cinnyDesktop?: {
       platform: string;
       versions: { electron: string; chrome: string; node: string };
+      setBadgeCount?: (count: number, overlayPng?: string) => void;
       supportsRichPresenceBridge?: true;
       startRichPresenceBridge?: () => Promise<RichPresenceBridgeStartResult>;
       stopRichPresenceBridge?: () => Promise<void>;

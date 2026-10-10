@@ -35,6 +35,7 @@ import { mDirectAtom } from '../../state/mDirectList';
 import { useSpaceAutoJoinGlobal } from '../../hooks/useSpaceAutoJoinGlobal';
 import { useRoomNavShortcuts } from '../../hooks/useRoomNavShortcuts';
 import { useRoomNavHistory } from '../../hooks/useRoomNavHistory';
+import { renderBadgeOverlay } from '../../utils/desktopBadge';
 
 function GifFavoritesMigration() {
   const mx = useMatrixClient();
@@ -91,6 +92,26 @@ function FaviconUpdater() {
     } else {
       setFavicon(LogoSVG);
     }
+  }, [roomToUnread]);
+
+  return null;
+}
+
+function DesktopBadgeFeature() {
+  const roomToUnread = useAtomValue(roomToUnreadAtom);
+
+  useEffect(() => {
+    const bridge = window.cinnyDesktop;
+    if (!bridge?.setBadgeCount) return;
+
+    let mentions = 0;
+    roomToUnread.forEach((unread) => {
+      mentions += unread.highlight;
+    });
+
+    const overlay =
+      bridge.platform === 'win32' && mentions > 0 ? renderBadgeOverlay(mentions) : undefined;
+    bridge.setBadgeCount(mentions, overlay);
   }, [roomToUnread]);
 
   return null;
@@ -326,6 +347,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
       <PageZoomFeature />
       <GifFavoritesMigration />
       <FaviconUpdater />
+      <DesktopBadgeFeature />
       <InviteNotifications />
       <MessageNotifications />
       <SpaceAutoJoinFeature />

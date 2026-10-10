@@ -1,4 +1,13 @@
-const { app, BrowserWindow, shell, Menu, session, desktopCapturer, ipcMain } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  shell,
+  Menu,
+  session,
+  desktopCapturer,
+  ipcMain,
+  nativeImage,
+} = require('electron');
 const path = require('path');
 const { registerAppScheme, registerAppHandler, APP_ORIGIN } = require('./app-protocol.cjs');
 const { buildAppMenu } = require('./menu.cjs');
@@ -39,6 +48,22 @@ ipcMain.handle('rich-presence:stop', async () => {
     await rpServer?.stop();
   } catch {
     // ignore
+  }
+});
+
+// Unread mention count shown on the app icon: dock badge (macOS), Unity
+// launcher count (Linux, where the desktop supports it) and a taskbar overlay
+// on Windows, where the renderer draws the bubble and sends it as a PNG data URL.
+ipcMain.on('badge:set', (_event, payload) => {
+  const count = Number.isInteger(payload?.count) && payload.count > 0 ? payload.count : 0;
+  app.setBadgeCount(count);
+
+  if (process.platform === 'win32' && mainWindow && !mainWindow.isDestroyed()) {
+    const overlay =
+      count > 0 && typeof payload?.overlay === 'string'
+        ? nativeImage.createFromDataURL(payload.overlay)
+        : null;
+    mainWindow.setOverlayIcon(overlay, count > 0 ? `${count} unread mentions` : '');
   }
 });
 
