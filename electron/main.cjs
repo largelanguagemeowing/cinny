@@ -6,6 +6,7 @@ const { createRichPresenceServer } = require('./rich-presence.cjs');
 
 // dist sits next to electron/ in both dev and the packaged asar
 const DIST_DIR = path.join(__dirname, '..', 'dist');
+const APP_ICON = path.join(__dirname, 'build', 'icon.png');
 
 let mainWindow = null;
 
@@ -72,6 +73,9 @@ function createWindow() {
     backgroundColor: '#15171e',
     autoHideMenuBar: true,
     title: 'Cinny',
+    // Linux taskbars read the window icon from here; without it Electron's
+    // generic icon is shown instead of the desktop entry's icon.
+    icon: APP_ICON,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
