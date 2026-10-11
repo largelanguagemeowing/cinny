@@ -27,7 +27,8 @@ import {
   VideoContent,
 } from './message';
 import { UrlPreviewCard, UrlPreviewHolder } from './url-preview';
-import { Image, MediaControl, Video } from './media';
+import { Image, MediaControl } from './media';
+import { VideoPlayer } from './media/VideoPlayer';
 import { ImageViewer } from './image-viewer';
 import { PdfViewer } from './Pdf-viewer';
 import { TextViewer } from './text-viewer';
@@ -35,6 +36,8 @@ import { testMatrixTo } from '../plugins/matrix-to';
 import { parseOoyeGif } from '../utils/ooye';
 import { IImageContent } from '../../types/matrix/common';
 import { isMediaAutoEmbedUrl } from '../utils/mediaAutoEmbed';
+import { isDirectGifUrl } from '../utils/directGif';
+import { DirectGifContent } from './message/content/DirectGifContent';
 import { trimReplyFromBody, trimReplyFromFormattedBody } from '../utils/room';
 
 type RenderMessageContentProps = {
@@ -85,9 +88,13 @@ export function RenderMessageContent({
       <>
         {mediaUrls.length > 0 && (
           <Box direction="Column" gap="200" style={{ marginTop: config.space.S200 }}>
-            {mediaUrls.map((url) => (
-              <MediaAutoEmbed key={url} url={url} autoLoad={mediaAutoLoad} />
-            ))}
+            {mediaUrls.map((url) =>
+              isDirectGifUrl(url) ? (
+                <DirectGifContent key={url} url={url} autoLoad={mediaAutoLoad} />
+              ) : (
+                <MediaAutoEmbed key={url} url={url} autoLoad={mediaAutoLoad} />
+              )
+            )}
           </Box>
         )}
         {previewUrls.length > 0 && (
@@ -266,10 +273,6 @@ export function RenderMessageContent({
               info={info}
               {...props}
               autoPlay={gifLike ? mediaAutoLoad ?? false : false}
-              controls={!gifLike}
-              loop={gifLike}
-              muted={gifLike}
-              playsInline={gifLike}
               renderThumbnail={
                 mediaAutoLoad
                   ? () => (
@@ -282,10 +285,7 @@ export function RenderMessageContent({
                     )
                   : undefined
               }
-              renderVideo={(p) => {
-                const { videoRef, ...rest } = p;
-                return <Video {...rest} ref={videoRef} />;
-              }}
+              renderVideo={(p) => <VideoPlayer {...p} playback={gifLike ? 'gif' : 'video'} />}
             />
           )}
           outlined={outlineAttachment}

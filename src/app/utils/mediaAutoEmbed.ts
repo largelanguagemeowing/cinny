@@ -1,15 +1,10 @@
+import { isDirectGifUrl } from './directGif';
+
 const MEDIA_AUTO_EMBED_HOSTS = new Set(['nyafiles.de', 'pissdichal.de']);
-const VIDEO_EXTENSIONS = new Set([
-  'mp4',
-  'm4v',
-  'webm',
-  'ogv',
-  'mov',
-  'mkv',
-  'avi',
-]);
+const VIDEO_EXTENSIONS = new Set(['mp4', 'm4v', 'webm', 'ogv', 'mov', 'mkv', 'avi']);
 
 export const isMediaAutoEmbedUrl = (value: string): boolean => {
+  if (isDirectGifUrl(value)) return true;
   try {
     const url = new URL(value);
     if (!(url.protocol === 'http:' || url.protocol === 'https:')) return false;

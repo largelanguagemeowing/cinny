@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Button, Icon, Icons, Spinner, Text, Tooltip, TooltipProvider, toRem } from 'folds';
 import { Attachment, AttachmentBox } from '../attachment';
-import { Video } from '../../media';
-import { useHoverPlay } from '../../../hooks/useHoverPlay';
+import { VideoPlayer } from '../../media/VideoPlayer';
 import * as css from './style.css';
 import { fitWithin } from '../../../utils/common';
 
@@ -20,23 +19,11 @@ const DEFAULT_W = GIF_MAX_W;
 const DEFAULT_H = 300;
 
 export function OoyeGifContent({ title, videoUrl, autoPlay: autoPlayProp }: OoyeGifContentProps) {
-  const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [width, setWidth] = useState(DEFAULT_W);
   const [height, setHeight] = useState(DEFAULT_H);
   const [showVideo, setShowVideo] = useState(autoPlayProp ?? false);
-
-  // Play / pause based on hover in low animation mode
-  useEffect(() => {
-    if (!lowAnimationMode || !videoRef.current) return;
-    if (hovered) {
-      videoRef.current.play().catch(() => undefined);
-    } else {
-      videoRef.current.pause();
-    }
-  }, [lowAnimationMode, hovered, showVideo, loaded]);
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
@@ -63,19 +50,12 @@ export function OoyeGifContent({ title, videoUrl, autoPlay: autoPlayProp }: Ooye
   return (
     <Attachment style={{ width: toRem(width) }}>
       <AttachmentBox style={{ width: toRem(width), height: toRem(height) }}>
-        <Box className={css.RelativeBase} {...hoverProps}>
+        <Box className={css.RelativeBase}>
           {showVideo && !error && (
             <Box className={css.AbsoluteContainer}>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <Video
-                ref={videoRef}
+              <VideoPlayer
+                playback="gif"
                 src={videoUrl}
-                autoPlay={!lowAnimationMode}
-                loop
-                muted
-                controls
-                playsInline
-                preload="auto"
                 title={title}
                 onLoadedMetadata={handleLoadedMetadata}
                 onError={handleError}

@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   Badge,
   Box,
@@ -22,7 +22,6 @@ import {
 } from '../../../../types/matrix/common';
 import * as css from './style.css';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { useHoverPlay } from '../../../hooks/useHoverPlay';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { bytesToSize, millisecondsToMinutesAndSeconds } from '../../../utils/common';
 import {
@@ -39,12 +38,6 @@ type RenderVideoProps = {
   src: string;
   onLoadedMetadata: () => void;
   onError: () => void;
-  autoPlay: boolean;
-  controls: boolean;
-  loop: boolean;
-  muted: boolean;
-  playsInline: boolean;
-  videoRef?: React.Ref<HTMLVideoElement>;
 };
 type VideoContentProps = {
   body: string;
@@ -53,10 +46,6 @@ type VideoContentProps = {
   info: IVideoInfo & IThumbnailContent;
   encInfo?: EncryptedAttachmentInfo;
   autoPlay?: boolean;
-  controls?: boolean;
-  loop?: boolean;
-  muted?: boolean;
-  playsInline?: boolean;
   markedAsSpoiler?: boolean;
   spoilerReason?: string;
   renderThumbnail?: () => ReactNode;
@@ -72,10 +61,6 @@ export const VideoContent = as<'div', VideoContentProps>(
       info,
       encInfo,
       autoPlay: autoPlayProp,
-      controls = true,
-      loop = false,
-      muted = false,
-      playsInline = false,
       markedAsSpoiler,
       spoilerReason,
       renderThumbnail,
@@ -87,8 +72,6 @@ export const VideoContent = as<'div', VideoContentProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const blurHash = validBlurHash(info.thumbnail_info?.[MATRIX_BLUR_HASH_PROPERTY_NAME]);
-    const { lowAnimationMode, hovered, hoverProps } = useHoverPlay();
-    const videoRef = useRef<HTMLVideoElement>(null);
 
     const [load, setLoad] = useState(false);
     const [error, setError] = useState(false);
@@ -124,18 +107,8 @@ export const VideoContent = as<'div', VideoContentProps>(
       if (autoPlayProp ?? true) loadSrc();
     }, [autoPlayProp, loadSrc]);
 
-    // Play / pause based on hover in low animation mode
-    useEffect(() => {
-      if (!lowAnimationMode || !videoRef.current) return;
-      if (hovered) {
-        videoRef.current.play().catch(() => undefined);
-      } else {
-        videoRef.current.pause();
-      }
-    }, [lowAnimationMode, hovered, srcState.status]);
-
     return (
-      <Box className={classNames(css.RelativeBase, className)} {...hoverProps} {...props} ref={ref}>
+      <Box className={classNames(css.RelativeBase, className)} {...props} ref={ref}>
         {typeof blurHash === 'string' && !load && (
           <BlurhashCanvas
             style={{ width: '100%', height: '100%' }}
@@ -175,12 +148,6 @@ export const VideoContent = as<'div', VideoContentProps>(
               src: srcState.data,
               onLoadedMetadata: handleLoad,
               onError: handleError,
-              autoPlay: !lowAnimationMode,
-              controls,
-              loop,
-              muted,
-              playsInline,
-              videoRef,
             })}
           </Box>
         )}
